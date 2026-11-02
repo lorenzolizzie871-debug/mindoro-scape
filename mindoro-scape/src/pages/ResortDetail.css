@@ -1,0 +1,408 @@
+/* Resort Detail page */
+.rd-page { --background: #f5f8fb; }
+.rd-content { --background: #f5f8fb; color: #17384c; }
+.rd-header { position: sticky; top: 0; z-index: 20; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px clamp(16px,4vw,34px); background:rgba(255,255,255,.96); border-bottom:1px solid #e5edf2; }
+.rd-header-left,.rd-header-right { display:flex; align-items:center; gap:12px; min-width:0; }
+.rd-logo { width:38px; height:38px; object-fit:contain; }
+.rd-header-title { margin:0; font-size:17px; font-weight:800; color:#12384f; }
+.rd-icon-button,.rd-profile-button { width:40px; height:40px; border:0; border-radius:13px; background:#f0f5f8; color:#17465e; display:grid; place-items:center; cursor:pointer; }
+.rd-main { width:min(100% - 32px, 980px); margin:22px auto 0; }
+.rd-gallery { overflow:hidden; border-radius:22px; }
+.rd-hero { position:relative; height:clamp(220px,42vw,430px); background:#e3edf2; }
+.rd-hero-image { width:100%; height:100%; object-fit:cover; display:block; }
+.rd-hero-scrim { position:absolute; inset:35% 0 0; background:linear-gradient(transparent,rgba(0,0,0,.34)); pointer-events:none; }
+.rd-verified-pill,.rd-photo-counter { position:absolute; display:flex; align-items:center; gap:7px; color:white; font-size:12px; font-weight:800; }
+.rd-verified-pill { top:17px; left:17px; background:rgba(13,59,79,.82); border-radius:30px; padding:9px 13px; }
+.rd-photo-counter { right:17px; bottom:16px; text-shadow:0 1px 4px #333; }
+.rd-thumbs { display:flex; gap:9px; overflow:auto; padding:10px 0; }
+.rd-thumb { flex:0 0 78px; height:62px; border:2px solid transparent; border-radius:10px; overflow:hidden; padding:0; background:#eaf0f3; }
+.rd-thumb.active { border-color:#087b9c; }
+.rd-thumb img { width:100%; height:100%; object-fit:cover; }
+.rd-section { margin:22px 0; }
+.rd-title-section { padding:3px 2px; }
+.rd-title-row,.rd-section-heading,.rd-room-title-row,.rd-room-footer,.rd-booking-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.rd-eyebrow { color:#087b9c; font-size:12px; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+.rd-live-status { padding:6px 11px; border-radius:30px; background:#e5f7ed; color:#187447; font-size:11px; font-weight:800; }
+.rd-live-status.is-unavailable { background:#fff0e8; color:#b45309; }
+.rd-resort-name { margin:9px 0; font-size:clamp(24px,4vw,34px); font-weight:900; color:#12384f; }
+.rd-address { display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:#657b89; font-size:13px; }
+.rd-address a,.rd-directions-link { display:inline-flex; align-items:center; gap:6px; color:#087b9c; font-weight:800; text-decoration:none; }
+.rd-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.rd-fact,.rd-card { background:white; border:1px solid #e6edf2; border-radius:16px; }
+.rd-fact { display:flex; align-items:center; gap:12px; padding:15px; }
+.rd-fact-icon,.rd-amenity-icon { width:38px; height:38px; border-radius:12px; display:grid; place-items:center; background:#eaf5f8; color:#087b9c; flex:0 0 auto; }
+.rd-fact small,.rd-booking-price small { display:block; color:#7a8b96; font-size:11px; margin-bottom:4px; }
+.rd-fact strong { color:#183d52; font-size:13px; }
+.rd-section-heading { margin-bottom:12px; }
+.rd-section-heading h3 { margin:0; color:#12384f; font-size:19px; font-weight:900; }
+.rd-muted-text { color:#7a8b96; font-size:12px; }
+.rd-tag { display:inline-flex; border-radius:20px; padding:6px 10px; background:#eaf5f8; color:#087b9c; font-size:10px; font-weight:800; }
+.rd-about-card { padding:18px; }
+.rd-about-card p { margin:0; color:#586f7d; line-height:1.7; font-size:14px; }
+.rd-clamp { display:-webkit-box; line-clamp:4; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden; }
+.rd-read-more { display:flex; align-items:center; gap:5px; margin-top:12px; border:0; background:none; color:#087b9c; font-weight:800; cursor:pointer; }
+.rd-flip { transform:rotate(180deg); }
+.rd-amenity-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; }
+.rd-amenity { display:flex; align-items:center; gap:10px; padding:11px; border:1px solid #e6edf2; background:white; border-radius:13px; color:#385466; font-size:13px; font-weight:650; }
+.rd-amenity-icon { width:32px; height:32px; border-radius:10px; }
+.rd-room-list { display:grid; gap:13px; }
+.rd-room { padding:16px; transition:border-color .2s,box-shadow .2s; }
+.rd-room.selected { border-color:#0783a4; box-shadow:0 0 0 2px rgba(8,123,156,.09); }
+.rd-room-info h4 { margin:0; color:#153c53; font-size:16px; font-weight:900; }
+.rd-rate-details { display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+.rd-rate-details span { padding:5px 8px; border-radius:8px; background:#f2f6f8; color:#5b7180; font-size:11px; }
+.rd-included-block { margin-top:13px; padding:12px; border-radius:12px; background:#f5f9fb; }
+.rd-included-block > strong { display:block; margin-bottom:9px; color:#23465a; font-size:12px; }
+.rd-included-block p { margin:0; color:#81909c; font-size:12px; font-style:italic; }
+.rd-included-list { display:flex; flex-wrap:wrap; gap:7px; }
+.rd-included-chip { display:inline-flex; align-items:center; gap:6px; padding:7px 9px; border:1px solid #dceaf0; border-radius:30px; background:white; color:#385466; font-size:11px; font-weight:700; }
+.rd-included-chip svg { width:14px; height:14px; color:#087b9c; }
+.rd-room-footer { margin-top:15px; padding-top:12px; border-top:1px solid #edf1f4; }
+.rd-price strong { color:#087b9c; font-size:20px; font-weight:900; }
+.rd-price span { margin-left:5px; color:#718491; font-size:11px; }
+.rd-select-room,.rd-primary-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; border-radius:11px; padding:10px 14px; background:#eaf5f8; color:#086783; font-weight:850; font-size:12px; cursor:pointer; }
+.rd-select-room.active,.rd-primary-button { background:#087b9c; color:white; }
+.rd-empty-note { padding:18px; color:#7a8b96; font-size:13px; }
+.rd-map-card { overflow:hidden; }
+.rd-location-panel { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:16px; color:#345367; font-size:13px; }
+.rd-map-frame { height:280px; background:#e9f0f3; }
+.rd-map-frame iframe { width:100%; height:100%; border:0; }
+.rd-travel-tools { padding:16px; }
+.rd-travel-mode { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:16px 0 12px; }
+.rd-travel-mode button { display:flex; align-items:center; justify-content:center; gap:6px; padding:10px 6px; border:1px solid #dce6eb; border-radius:10px; background:white; color:#4b6575; font-size:12px; font-weight:800; }
+.rd-travel-mode button.active { border-color:#087b9c; background:#eaf5f8; color:#087b9c; }
+.rd-distance-result { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.rd-distance-result > div { padding:13px; border-radius:12px; background:#f3f8fa; }
+.rd-distance-result small { display:block; color:#738794; font-size:11px; margin-bottom:5px; }
+.rd-distance-result strong { display:flex; align-items:center; gap:6px; color:#143d54; font-size:17px; }
+.rd-estimate-note,.rd-location-error { color:#718491; font-size:11px; line-height:1.55; }
+.rd-location-error { color:#b45309; }
+.rd-directions-link { margin-top:7px; font-size:12px; }
+.rd-bottom-space { height:35px; }
+.rd-footer { background:white; border-top:1px solid #e4ebef; }
+.rd-booking-bar { width:min(100% - 30px,950px); margin:auto; padding:12px 0 calc(12px + env(safe-area-inset-bottom)); }
+.rd-booking-price .rd-price strong { font-size:19px; }
+.rd-book-button { display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 22px; border:0; border-radius:13px; background:#087b9c; color:white; font-weight:900; cursor:pointer; }
+.rd-book-button:disabled { background:#aab8bf; cursor:not-allowed; }
+.rd-state,.rd-not-found { min-height:55vh; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:25px; text-align:center; color:#567080; }
+.rd-state h2,.rd-not-found h2 { margin:8px 0 0; color:#153d53; }
+.rd-state p,.rd-not-found p { max-width:520px; font-size:13px; line-height:1.6; }
+@media (max-width:600px) {
+  .rd-main { width:calc(100% - 24px); margin-top:12px; }
+  .rd-header { padding:9px 12px; }
+  .rd-header-title { font-size:15px; }
+  .rd-logo { width:32px; height:32px; }
+  .rd-facts { gap:8px; }
+  .rd-fact { padding:11px; gap:8px; }
+  .rd-fact strong { font-size:11px; }
+  .rd-section-heading h3 { font-size:17px; }
+  .rd-room { padding:13px; }
+  .rd-room-title-row { align-items:flex-start; }
+  .rd-room-title-row h4 { font-size:14px; }
+  .rd-map-frame { height:235px; }
+  .rd-booking-bar { width:calc(100% - 22px); }
+  .rd-book-button { padding:12px 14px; font-size:12px; }
+}
+
+
+/* Rate-specific additional services shown in Resort Details */
+.rd-services-block {
+  margin-top: 15px;
+  padding-top: 13px;
+  border-top: 1px solid #e8eef2;
+}
+.rd-services-block > strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #17394b;
+  font-size: 13px;
+  font-weight: 800;
+}
+.rd-services-list {
+  display: grid;
+  gap: 8px;
+}
+.rd-service-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #e3edf1;
+  border-radius: 10px;
+  background: #f8fbfc;
+}
+.rd-service-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.rd-service-name {
+  color: #18384a;
+  font-size: 13px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+.rd-service-copy small {
+  color: #718391;
+  font-size: 11px;
+}
+.rd-service-price,
+.rd-service-free {
+  flex: 0 0 auto;
+  color: #17465a;
+  font-size: 13px;
+  font-weight: 800;
+}
+.rd-service-free {
+  color: #168052;
+}
+.rd-no-services {
+  margin: 0;
+  color: #718391;
+  font-size: 12px;
+}
+
+/* Selected-rate clarity: only one pricing option is carried into Reservation. */
+.rd-selected-summary {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 14px;
+  align-items: center;
+  padding: 17px;
+  border: 1px solid #a8d7e4;
+  background: linear-gradient(135deg, #f2fbfd 0%, #ffffff 100%);
+}
+.rd-selected-summary small {
+  display: block;
+  margin-bottom: 5px;
+  color: #6b8491;
+  font-size: 11px;
+  font-weight: 700;
+}
+.rd-selected-summary h4 {
+  margin: 0 0 5px;
+  color: #153c53;
+  font-size: 16px;
+  font-weight: 900;
+}
+.rd-selected-summary p {
+  margin: 0 0 5px;
+  color: #087b9c;
+  font-size: 15px;
+  font-weight: 900;
+}
+.rd-selected-summary span {
+  color: #718491;
+  font-size: 11px;
+}
+.rd-selected-summary-check {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #087b9c;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+}
+.rd-selected-summary-note {
+  grid-column: 1 / -1;
+  padding-top: 10px;
+  border-top: 1px solid #dcecf1;
+  color: #587383 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+.rd-select-room.active {
+  background: #087b9c;
+  color: #fff;
+}
+.rd-room.selected .rd-room-footer {
+  border-top-color: #cce6ed;
+}
+@media (max-width: 600px) {
+  .rd-selected-summary { padding: 14px; }
+  .rd-selected-summary h4 { font-size: 14px; }
+}
+
+
+/* Resort identity overlay on the main gallery image */
+.rd-hero-caption {
+  position: absolute;
+  z-index: 2;
+  left: clamp(18px, 4vw, 42px);
+  right: clamp(18px, 4vw, 42px);
+  bottom: clamp(22px, 4vw, 42px);
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, .45);
+  pointer-events: none;
+}
+.rd-hero-caption .rd-hero-kicker {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255,255,255,.42);
+  border-radius: 999px;
+  background: rgba(8, 45, 57, .38);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  backdrop-filter: blur(8px);
+}
+.rd-hero-caption h2 {
+  max-width: 850px;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(27px, 5vw, 48px);
+  line-height: 1.08;
+  font-weight: 900;
+  letter-spacing: -.8px;
+  overflow-wrap: anywhere;
+}
+.rd-hero-caption p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: rgba(255,255,255,.96);
+  font-size: clamp(12px, 1.6vw, 15px);
+  font-weight: 600;
+}
+.rd-hero-caption p svg { flex: 0 0 auto; }
+@media (max-width: 600px) {
+  .rd-hero-caption { bottom: 18px; }
+  .rd-hero-caption h2 { font-size: clamp(24px, 7vw, 34px); }
+  .rd-hero-caption .rd-hero-kicker { font-size: 9px; }
+}
+
+
+/* Separate the owner's resort brand from the accommodation/package title. */
+.rd-accommodation-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: -2px 0 10px;
+  color: #718391;
+  font-size: 13px;
+  font-weight: 700;
+}
+.rd-accommodation-name svg {
+  flex: 0 0 auto;
+  color: #087b9c;
+}
+
+
+/* Expanded, clearly visible multi-photo gallery */
+.rd-gallery-strip {
+  padding: 12px 2px 4px;
+}
+.rd-gallery-strip-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  color: #163746;
+  font-size: 13px;
+}
+.rd-gallery-strip-heading strong {
+  font-size: 14px;
+  font-weight: 850;
+}
+.rd-gallery-strip-heading span {
+  color: #71838c;
+  font-size: 12px;
+  font-weight: 650;
+}
+.rd-thumbs {
+  display: flex;
+  gap: 11px;
+  overflow-x: auto;
+  padding: 2px 1px 9px;
+  scrollbar-width: thin;
+}
+.rd-thumb {
+  position: relative;
+  flex: 0 0 116px;
+  width: 116px;
+  height: 82px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 0;
+  background: #e8eff2;
+  cursor: pointer;
+}
+.rd-thumb.active {
+  border-color: #087b9c;
+  box-shadow: 0 0 0 2px rgba(8,123,156,.13);
+}
+.rd-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.rd-thumb > span {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  display: grid;
+  place-items: center;
+  border-radius: 20px;
+  color: #fff;
+  background: rgba(8, 35, 48, .78);
+  font-size: 10px;
+  font-weight: 800;
+}
+.rd-thumb-error::after {
+  content: "Photo unavailable";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  color: #637782;
+  background: #edf2f4;
+  font-size: 10px;
+  text-align: center;
+}
+.rd-photo-controls {
+  position: absolute;
+  inset: 50% 14px auto;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.rd-photo-controls button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255,255,255,.65);
+  border-radius: 50%;
+  color: #173b4a;
+  background: rgba(255,255,255,.92);
+  box-shadow: 0 3px 14px rgba(0,0,0,.18);
+  font-size: 27px;
+  line-height: 1;
+  cursor: pointer;
+  pointer-events: auto;
+}
+@media (max-width: 600px) {
+  .rd-thumb {
+    flex-basis: 96px;
+    width: 96px;
+    height: 70px;
+  }
+  .rd-photo-controls {
+    inset-inline: 9px;
+  }
+}
