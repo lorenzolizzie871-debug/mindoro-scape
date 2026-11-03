@@ -1,0 +1,1659 @@
+
+/* =========================================================
+   MINDORO SCAPE - USER DASHBOARD
+========================================================= */
+
+.user-dashboard-content {
+  --background: #f5f8ff;
+  --padding-bottom: 0;
+  color: #073b53;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.user-dashboard-content::part(scroll) {
+  scrollbar-width: thin;
+  scrollbar-color: #c9d9e2 transparent;
+}
+
+.dashboard-shell {
+  min-height: 100%;
+  padding-bottom: 24px;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.dashboard-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  min-height: 72px;
+  padding: 12px max(24px, calc((100% - 1240px) / 2));
+
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #edf1f5;
+  box-shadow: 0 3px 15px rgba(7, 59, 83, 0.025);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.dashboard-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+
+  min-width: 0;
+  padding: 0;
+
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-brand > img {
+  display: block;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.dashboard-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard-brand-copy strong {
+  color: #073b53;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.dashboard-brand-copy small {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  color: #405967;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.dashboard-brand-copy small svg {
+  color: #087b91;
+}
+
+.dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+}
+
+.dashboard-icon-button,
+.dashboard-profile-button {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 39px;
+  height: 39px;
+  flex-shrink: 0;
+
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #173f51;
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dashboard-icon-button:hover,
+.dashboard-profile-button:hover {
+  background: #eaf4f7;
+}
+
+.dashboard-profile-button {
+  background: #d8edf0;
+  color: #07516b;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+
+  width: 9px;
+  height: 9px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #087b91;
+}
+
+.mobile-menu-trigger {
+  display: none;
+}
+
+/* =========================================================
+   NOTIFICATIONS AND MOBILE MENU
+========================================================= */
+
+.dashboard-notification-panel {
+  position: fixed;
+  top: 80px;
+  right: max(20px, calc((100% - 1240px) / 2));
+  z-index: 100;
+
+  width: min(340px, calc(100vw - 32px));
+  padding: 18px;
+
+  box-sizing: border-box;
+  border: 1px solid #e3ebef;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 14px 40px rgba(7, 59, 83, 0.14);
+}
+
+.dashboard-notification-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  color: #073b53;
+  font-size: 15px;
+}
+
+.dashboard-notification-heading button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f6f8;
+  color: #526b78;
+  cursor: pointer;
+}
+
+.dashboard-notification-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 8px 16px;
+  color: #087b91;
+  text-align: center;
+}
+
+.dashboard-notification-empty p {
+  margin: 12px 0 5px;
+  color: #073b53;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dashboard-notification-empty span {
+  color: #718591;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.dashboard-mobile-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  padding: 12px 20px;
+  border-bottom: 1px solid #e5edf2;
+  background: #ffffff;
+}
+
+.dashboard-mobile-menu button {
+  padding: 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #073b53;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dashboard-mobile-menu button:hover {
+  background: #eff7fa;
+}
+
+/* =========================================================
+   MAIN CONTENT
+========================================================= */
+
+.dashboard-main {
+  width: calc(100% - 48px);
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 30px 0 0;
+  box-sizing: border-box;
+}
+
+.dashboard-welcome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 21px;
+}
+
+.dashboard-eyebrow {
+  margin: 0 0 8px;
+  color: #087b91;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.8px;
+}
+
+.dashboard-welcome h1 {
+  margin: 0;
+  color: #073b53;
+  font-size: clamp(27px, 3.2vw, 35px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -1px;
+}
+
+.dashboard-welcome h1 span {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 0.9em;
+}
+
+.dashboard-welcome-description {
+  margin: 8px 0 0;
+  color: #607784;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* =========================================================
+   SEARCH BAR
+========================================================= */
+
+.dashboard-search-section {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
+.dashboard-search {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  min-width: 0;
+  flex: 1;
+  height: 53px;
+  padding: 0 18px;
+
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 28px;
+  background: #ffffff;
+  color: #687d88;
+  box-shadow: 0 6px 24px rgba(7, 59, 83, 0.045);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dashboard-search:focus-within {
+  border-color: #9ed4dc;
+  box-shadow: 0 0 0 4px rgba(8, 123, 145, 0.08);
+}
+
+.dashboard-search > svg {
+  flex-shrink: 0;
+}
+
+.dashboard-search input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #073b53;
+  font: inherit;
+  font-size: 13px;
+}
+
+.dashboard-search input::placeholder {
+  color: #85949e;
+}
+
+.dashboard-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.dashboard-clear-search {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #edf3f6;
+  color: #607784;
+  cursor: pointer;
+}
+
+.dashboard-filter-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  width: 53px;
+  height: 53px;
+  border: 0;
+  border-radius: 50%;
+  background: #073b53;
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 5px 14px rgba(7, 59, 83, 0.15);
+  transition: background-color 0.2s ease;
+}
+
+.dashboard-filter-button:hover,
+.dashboard-filter-button.is-active {
+  background: #087b91;
+}
+
+.dashboard-filter-panel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  margin-top: 14px;
+  padding: 15px 17px;
+
+  border: 1px solid #e2ebef;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.dashboard-filter-panel label {
+  color: #173f51;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dashboard-filter-panel select {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid #dce7ec;
+  border-radius: 8px;
+  outline-color: #087b91;
+  background: #ffffff;
+  color: #073b53;
+  font: inherit;
+  font-size: 12px;
+}
+
+.dashboard-filter-panel > button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #eaf5f7;
+  color: #07516b;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* =========================================================
+   CATEGORY FILTERS
+========================================================= */
+
+.dashboard-categories {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin: 18px 0 35px;
+  padding-bottom: 3px;
+  overflow-x: auto;
+
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-categories::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-category {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+
+  min-height: 42px;
+  padding: 0 17px;
+
+  border: 1px solid #e1eaf2;
+  border-radius: 24px;
+  background: #e6eeff;
+  color: #173f51;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.dashboard-category svg {
+  flex-shrink: 0;
+}
+
+.dashboard-category:hover {
+  border-color: #b7d7e1;
+  background: #d9eef2;
+}
+
+.dashboard-category.active {
+  border-color: #073b53;
+  background: #073b53;
+  color: #ffffff;
+}
+
+/* =========================================================
+   SECTION HEADINGS
+========================================================= */
+
+.dashboard-section {
+  margin-top: 0;
+  margin-bottom: 35px;
+}
+
+.dashboard-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+
+  margin-bottom: 17px;
+}
+
+.dashboard-section-heading h2 {
+  margin: 0;
+  color: #073b53;
+  font-size: clamp(20px, 2.3vw, 25px);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.55px;
+}
+
+.dashboard-section-heading p {
+  margin: 4px 0 0;
+  color: #70838f;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.dashboard-see-all {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+
+  min-height: 35px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #087b91;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.dashboard-see-all:hover {
+  color: #064e68;
+}
+
+/* =========================================================
+   RESORT GRID AND CARDS
+========================================================= */
+
+.dashboard-resort-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.dashboard-resort-card {
+  min-width: 0;
+  overflow: hidden;
+
+  border: 1px solid #edf1f5;
+  border-radius: 17px;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(7, 59, 83, 0.045);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dashboard-resort-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(7, 59, 83, 0.1);
+}
+
+.dashboard-resort-image-wrap {
+  position: relative;
+  height: 225px;
+  overflow: hidden;
+  background: #dcebef;
+}
+
+.dashboard-resort-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.dashboard-resort-card:hover .dashboard-resort-image {
+  transform: scale(1.035);
+}
+
+.dashboard-resort-image-wrap::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 45%;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 27, 39, 0.58)
+  );
+}
+
+.dashboard-resort-badge {
+  position: absolute;
+  top: 13px;
+  left: 13px;
+  z-index: 2;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  max-width: calc(100% - 80px);
+  padding: 7px 10px;
+
+  overflow: hidden;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #073b53;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-favorite-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 39px;
+  height: 39px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  color: #173f51;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.dashboard-favorite-button:hover {
+  transform: scale(1.07);
+}
+
+.dashboard-favorite-button.is-favorite {
+  color: #d53d55;
+}
+
+.dashboard-resort-location {
+  position: absolute;
+  bottom: 13px;
+  left: 14px;
+  z-index: 2;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-resort-info {
+  padding: 15px 16px 16px;
+}
+
+.dashboard-resort-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dashboard-resort-title-row h3 {
+  min-width: 0;
+  margin: 0;
+
+  color: #073b53;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.dashboard-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+
+  color: #e89b19;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.dashboard-rating small {
+  color: #83929b;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.dashboard-resort-amenity {
+  margin: 7px 0 15px;
+  overflow: hidden;
+
+  color: #6d7f89;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-resort-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dashboard-resort-bottom > p {
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.dashboard-resort-bottom > p strong {
+  color: #073b53;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.dashboard-resort-bottom > p span {
+  color: #7a8b95;
+  font-size: 11px;
+}
+
+.dashboard-resort-bottom > button {
+  min-height: 34px;
+  padding: 0 11px;
+
+  border: 0;
+  border-radius: 9px;
+  background: #eaf5f7;
+  color: #07516b;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dashboard-resort-bottom > button:hover {
+  background: #d6edf1;
+}
+
+/* =========================================================
+   EMPTY SEARCH STATE
+========================================================= */
+
+.dashboard-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 36px 20px;
+  border: 1px dashed #cddfe6;
+  border-radius: 17px;
+  background: #ffffff;
+  color: #087b91;
+  text-align: center;
+}
+
+.dashboard-empty-state h3 {
+  margin: 12px 0 5px;
+  color: #073b53;
+  font-size: 16px;
+}
+
+.dashboard-empty-state p {
+  margin: 0;
+  color: #70838f;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.dashboard-empty-state button {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: #073b53;
+  color: #ffffff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* =========================================================
+   PROMOTIONAL BANNER
+========================================================= */
+
+.dashboard-promo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  min-height: 195px;
+  margin: 5px 0 36px;
+  padding: 27px 30px;
+  overflow: hidden;
+
+  box-sizing: border-box;
+  border-radius: 20px;
+  background: linear-gradient(115deg, #06384d 0%, #075b70 58%, #087f98 100%);
+  box-shadow: 0 12px 25px rgba(7, 59, 83, 0.1);
+}
+
+.dashboard-promo::before {
+  position: absolute;
+  top: -100px;
+  right: 15%;
+  width: 240px;
+  height: 240px;
+  content: "";
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.dashboard-promo-content {
+  position: relative;
+  z-index: 2;
+  max-width: 580px;
+}
+
+.dashboard-promo-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 6px 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #c2f1f0;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.7px;
+}
+
+.dashboard-promo h2 {
+  margin: 13px 0 8px;
+  color: #ffffff;
+  font-size: clamp(21px, 2.8vw, 28px);
+  font-weight: 800;
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+}
+
+.dashboard-promo p {
+  max-width: 500px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+.dashboard-promo-content > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  min-height: 40px;
+  margin-top: 17px;
+  padding: 0 17px;
+
+  border: 0;
+  border-radius: 22px;
+  background: #35c8ed;
+  color: #073b53;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.dashboard-promo-content > button:hover {
+  background: #75e1f6;
+}
+
+.dashboard-promo-art {
+  position: absolute;
+  right: 35px;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 150px;
+  height: 150px;
+  transform: translateY(-50%);
+  color: rgba(97, 218, 230, 0.22);
+}
+
+/* =========================================================
+   DESTINATIONS
+========================================================= */
+
+.dashboard-destination-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.dashboard-destination-card {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+
+  border: 1px solid #edf1f5;
+  border-radius: 15px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+
+  box-shadow: 0 5px 18px rgba(7, 59, 83, 0.035);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.dashboard-destination-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(7, 59, 83, 0.09);
+}
+
+.dashboard-destination-image-wrap {
+  position: relative;
+  height: 135px;
+  overflow: hidden;
+  background: #dcebef;
+}
+
+.dashboard-destination-image-wrap img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.dashboard-destination-card:hover img {
+  transform: scale(1.045);
+}
+
+.dashboard-stay-count {
+  position: absolute;
+  top: 10px;
+  right: 9px;
+
+  padding: 5px 9px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #073b53;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.dashboard-destination-info {
+  padding: 12px 13px 14px;
+}
+
+.dashboard-destination-info h3 {
+  margin: 0;
+  color: #073b53;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.dashboard-destination-info p {
+  margin: 4px 0 0;
+  color: #71838e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   QUICK ACCESS
+========================================================= */
+
+.dashboard-quick-access {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+  margin: 35px 0;
+}
+
+.dashboard-quick-access > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+
+  min-width: 0;
+  padding: 19px;
+
+  border: 1px solid #e5edf1;
+  border-radius: 15px;
+  background: #ffffff;
+  color: #073b53;
+  text-align: left;
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.dashboard-quick-access > button:hover {
+  transform: translateY(-2px);
+  border-color: #a7d5dd;
+}
+
+.dashboard-quick-access > button > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 39px;
+  height: 39px;
+  border-radius: 12px;
+  background: #e8f5f7;
+  color: #087b91;
+}
+
+.dashboard-quick-access strong {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.dashboard-quick-access small {
+  color: #71838e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+
+.dashboard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 13px;
+
+  padding: 24px 0 12px;
+  border-top: 1px solid #e6edf2;
+  text-align: center;
+}
+
+.dashboard-footer span:first-child {
+  color: #07516b;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 1.3px;
+}
+
+.dashboard-footer span:last-child {
+  color: #91a5b1;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+
+/* =========================================================
+   MOBILE BOTTOM NAVIGATION
+========================================================= */
+
+.dashboard-bottom-nav {
+  display: none;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 900px) {
+  .dashboard-main {
+    width: calc(100% - 36px);
+    padding-top: 27px;
+  }
+
+  .dashboard-header {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
+  .dashboard-resort-grid {
+    gap: 14px;
+  }
+
+  .dashboard-resort-image-wrap {
+    height: 190px;
+  }
+
+  .dashboard-resort-title-row {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .dashboard-destination-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-destination-image-wrap {
+    height: 155px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+  .dashboard-shell {
+    padding-bottom: 88px;
+  }
+
+  .dashboard-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+
+    min-height: 67px;
+    padding: 10px 20px;
+    gap: 10px;
+  }
+
+  .dashboard-brand {
+    gap: 8px;
+  }
+
+  .dashboard-brand > img {
+    width: 35px;
+    height: 35px;
+  }
+
+  .dashboard-brand-copy strong {
+    font-size: 15px;
+  }
+
+  .dashboard-brand-copy small {
+    font-size: 8px;
+    letter-spacing: 0.7px;
+  }
+
+  .dashboard-header-actions {
+    gap: 7px;
+  }
+
+  .dashboard-icon-button,
+  .dashboard-profile-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .dashboard-profile-button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .mobile-menu-trigger {
+    display: inline-flex;
+  }
+
+  .dashboard-main {
+    width: 100%;
+    padding: 22px 0 0;
+  }
+
+  .dashboard-welcome {
+    display: block;
+    margin: 0 22px 16px;
+  }
+
+  .dashboard-eyebrow {
+    margin-bottom: 7px;
+    font-size: 9px;
+    letter-spacing: 1.4px;
+  }
+
+  .dashboard-welcome h1 {
+    font-size: 28px;
+    letter-spacing: -0.8px;
+  }
+
+  .dashboard-welcome-description {
+    margin-top: 6px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .dashboard-search-section {
+    gap: 10px;
+    padding: 0 22px;
+    box-sizing: border-box;
+  }
+
+  .dashboard-search {
+    height: 51px;
+    gap: 10px;
+    padding: 0 15px;
+  }
+
+  .dashboard-search input {
+    font-size: 12px;
+  }
+
+  .dashboard-filter-button {
+    width: 51px;
+    height: 51px;
+  }
+
+  .dashboard-filter-panel {
+    margin: 12px 22px 0;
+  }
+
+  .dashboard-categories {
+    gap: 9px;
+    margin: 17px 0 30px;
+    padding: 0 22px 3px;
+  }
+
+  .dashboard-category {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 11px;
+  }
+
+  .dashboard-section {
+    margin-bottom: 32px;
+  }
+
+  .dashboard-section-heading {
+    align-items: flex-end;
+    margin: 0 22px 15px;
+  }
+
+  .dashboard-section-heading h2 {
+    font-size: 21px;
+  }
+
+  .dashboard-section-heading p {
+    max-width: 250px;
+    font-size: 11px;
+  }
+
+  .dashboard-see-all {
+    min-height: 30px;
+    font-size: 11px;
+  }
+
+  .dashboard-resort-grid {
+    display: flex;
+    gap: 15px;
+
+    padding: 0 22px 7px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-resort-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dashboard-resort-card {
+    flex: 0 0 86%;
+    scroll-snap-align: start;
+    border-radius: 16px;
+  }
+
+  .dashboard-resort-image-wrap {
+    height: 198px;
+  }
+
+  .dashboard-resort-info {
+    padding: 14px 14px 15px;
+  }
+
+  .dashboard-resort-title-row {
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .dashboard-resort-title-row h3 {
+    font-size: 15px;
+  }
+
+  .dashboard-rating {
+    gap: 3px;
+    font-size: 11px;
+  }
+
+  .dashboard-rating small {
+    font-size: 9px;
+  }
+
+  .dashboard-resort-amenity {
+    margin: 6px 0 13px;
+    font-size: 11px;
+  }
+
+  .dashboard-resort-bottom > p strong {
+    font-size: 17px;
+  }
+
+  .dashboard-resort-bottom > button {
+    min-height: 33px;
+    font-size: 10px;
+  }
+
+  .dashboard-empty-state {
+    margin: 0 22px;
+  }
+
+  .dashboard-promo {
+    min-height: 205px;
+    margin: 0 22px 32px;
+    padding: 22px 19px;
+    border-radius: 17px;
+  }
+
+  .dashboard-promo-content {
+    max-width: 100%;
+  }
+
+  .dashboard-promo-label {
+    font-size: 9px;
+  }
+
+  .dashboard-promo h2 {
+    max-width: 290px;
+    margin: 12px 0 7px;
+    font-size: 21px;
+  }
+
+  .dashboard-promo p {
+    max-width: 320px;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .dashboard-promo-content > button {
+    min-height: 38px;
+    margin-top: 14px;
+    font-size: 11px;
+  }
+
+  .dashboard-promo-art {
+    top: 20px;
+    right: 10px;
+    width: 70px;
+    height: 70px;
+    transform: none;
+  }
+
+  .dashboard-promo-art svg {
+    width: 54px;
+    height: 54px;
+  }
+
+  .dashboard-destinations .dashboard-section-heading {
+    margin-bottom: 14px;
+  }
+
+  .dashboard-destination-grid {
+    gap: 13px;
+    padding: 0 22px;
+  }
+
+  .dashboard-destination-card {
+    border-radius: 14px;
+  }
+
+  .dashboard-destination-image-wrap {
+    height: 125px;
+  }
+
+  .dashboard-stay-count {
+    top: 8px;
+    right: 7px;
+    padding: 5px 8px;
+    font-size: 9px;
+  }
+
+  .dashboard-destination-info {
+    padding: 11px 11px 13px;
+  }
+
+  .dashboard-destination-info h3 {
+    font-size: 14px;
+  }
+
+  .dashboard-destination-info p {
+    font-size: 10px;
+  }
+
+  .dashboard-quick-access {
+    gap: 10px;
+    margin: 0 22px 28px;
+  }
+
+  .dashboard-quick-access > button {
+    gap: 6px;
+    padding: 13px 10px;
+    border-radius: 12px;
+  }
+
+  .dashboard-quick-access > button > span {
+    width: 33px;
+    height: 33px;
+    border-radius: 10px;
+  }
+
+  .dashboard-quick-access strong {
+    font-size: 11px;
+  }
+
+  .dashboard-quick-access small {
+    font-size: 9px;
+  }
+
+  .dashboard-footer {
+    flex-direction: column;
+    gap: 4px;
+    margin: 0 22px;
+    padding: 19px 0 8px;
+  }
+
+  .dashboard-footer span:first-child {
+    font-size: 8px;
+  }
+
+  .dashboard-footer span:last-child {
+    font-size: 7px;
+    letter-spacing: 0.4px;
+  }
+
+  .dashboard-bottom-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: center;
+
+    min-height: 67px;
+    padding: 7px 7px calc(7px + env(safe-area-inset-bottom));
+
+    box-sizing: content-box;
+    border-top: 1px solid #edf1f5;
+    background: rgba(255, 255, 255, 0.97);
+    box-shadow: 0 -6px 22px rgba(7, 59, 83, 0.045);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .dashboard-bottom-nav button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+
+    min-width: 0;
+    min-height: 53px;
+    padding: 4px 0;
+
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #73818c;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .dashboard-bottom-nav button span {
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .dashboard-bottom-nav button.active {
+    color: #073b53;
+  }
+
+  .dashboard-bottom-nav button.active svg {
+    stroke-width: 2.5;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 380px) {
+  .dashboard-header {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .dashboard-brand-copy strong {
+    font-size: 14px;
+  }
+
+  .dashboard-brand-copy small {
+    font-size: 7px;
+  }
+
+  .dashboard-header-actions {
+    gap: 3px;
+  }
+
+  .dashboard-welcome,
+  .dashboard-search-section {
+    margin-right: 0;
+    margin-left: 0;
+  }
+
+  .dashboard-welcome {
+    padding: 0 17px;
+  }
+
+  .dashboard-search-section {
+    padding: 0 17px;
+  }
+
+  .dashboard-categories {
+    padding-right: 17px;
+    padding-left: 17px;
+  }
+
+  .dashboard-section-heading {
+    margin-right: 17px;
+    margin-left: 17px;
+  }
+
+  .dashboard-resort-grid {
+    padding-right: 17px;
+    padding-left: 17px;
+  }
+
+  .dashboard-resort-card {
+    flex-basis: 91%;
+  }
+
+  .dashboard-promo {
+    margin-right: 17px;
+    margin-left: 17px;
+    padding: 21px 16px;
+  }
+
+  .dashboard-promo-art {
+    opacity: 0.55;
+  }
+
+  .dashboard-destination-grid {
+    gap: 10px;
+    padding-right: 17px;
+    padding-left: 17px;
+  }
+
+  .dashboard-destination-image-wrap {
+    height: 110px;
+  }
+
+  .dashboard-destination-info {
+    padding: 10px 9px 12px;
+  }
+
+  .dashboard-destination-info h3 {
+    font-size: 13px;
+  }
+
+  .dashboard-quick-access {
+    margin-right: 17px;
+    margin-left: 17px;
+  }
+
+  .dashboard-footer {
+    margin-right: 17px;
+    margin-left: 17px;
+  }
+
+  .dashboard-bottom-nav button span {
+    font-size: 9px;
+  }
+}
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-resort-card,
+  .dashboard-resort-image,
+  .dashboard-favorite-button,
+  .dashboard-destination-card,
+  .dashboard-destination-image-wrap img,
+  .dashboard-quick-access > button {
+    transition: none;
+  }
+
+  .dashboard-resort-card:hover,
+  .dashboard-destination-card:hover,
+  .dashboard-quick-access > button:hover {
+    transform: none;
+  }
+}
