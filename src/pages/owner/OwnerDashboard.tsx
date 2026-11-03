@@ -15,8 +15,10 @@ import {
   query,
   where,
   onSnapshot,
+  getDoc,
   doc,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -59,9 +61,11 @@ import {
 } from 'ionicons/icons';
 
 import './OwnerDashboard.css';
+import './OwnerNotifications.css';
 import OwnerBookings from './OwnerBookings';
 import OwnerVillas from './OwnerVillas';
 import OwnerSettings from './OwnerSettings';
+import OwnerInquiries from './OwnerInquiries';
 import type { OwnerVillaPackage } from './OwnerVillas';
 
 // =========================================================
@@ -106,6 +110,33 @@ type OwnerUser = {
   permitImageUrl?: string;
 };
 
+
+type OwnerNotification = {
+  id: string;
+  ownerId?: string;
+  type?: string;
+  bookingId?: string;
+  guestName?: string;
+  resortName?: string;
+  accommodationName?: string;
+  referenceCode?: string;
+  checkIn?: string;
+  checkOut?: string;
+  createdAt?: any;
+  read?: boolean;
+};
+
+type OwnerChatNotice = {
+  id: string;
+  userId?: string;
+  bookingId?: string;
+  guestName?: string;
+  resortName?: string;
+  accommodationName?: string;
+  lastMessage?: string;
+  unreadForOwner?: number;
+};
+
 type LocationSuggestion = {
   place_id: number;
   display_name: string;
@@ -145,7 +176,12 @@ const OwnerDashboard: React.FC = () => {
   const [userData, setUserData] = useState<OwnerUser | null>(null);
   const [packages, setPackages] = useState<OwnerPackage[]>([]);
   const [showAllListings, setShowAllListings] = useState(false);
-  const [activeOwnerTab, setActiveOwnerTab] = useState<'overview' | 'bookings' | 'villas' | 'settings'>('overview');
+  const [activeOwnerTab, setActiveOwnerTab] = useState<'overview' | 'bookings' | 'villas' | 'inquiries' | 'settings'>('overview');
+  const [ownerNotifications, setOwnerNotifications] = useState<OwnerNotification[]>([]);
+  const [ownerChatNotices, setOwnerChatNotices] = useState<OwnerChatNotice[]>([]);
+  const [showOwnerNotifications, setShowOwnerNotifications] = useState(false);
+  const [pendingInquiryChatId, setPendingInquiryChatId] = useState<string | null>(null);
+
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingPackageId, setEditingPackageId] = useState<string | null>(null);
@@ -299,6 +335,160 @@ const OwnerDashboard: React.FC = () => {
       unsubscribePackages?.();
     };
   }, [navigate]);
+
+  // =========================================================
+  // GLOBAL OWNER NOTIFICATIONS (AVAILABLE ON EVERY OWNER TAB)
+  // =========================================================
+
+  useEffect(() => {
+    const ownerId = auth.currentUser?.uid;
+    if (!ownerId || userData?.status !== 'approved') {
+      setOwnerNotifications([]);
+      setOwnerChatNotices([]);
+      return;
+    }
+
+    const notificationsQuery = query(
+      collection(db, 'ownerNotifications'),
+      where('ownerId', '==', ownerId)
+    );
+    const unsubscribeNotifications = onSnapshot(
+      notificationsQuery,
+      (snapshot) => {
+        const rows = snapshot.docs.map((item) => ({
+          id: item.id,
+          ...item.data(),
+        })) as OwnerNotification[];
+        rows.sort((a, b) => {
+          const getTime = (value: any) => value?.toDate ? value.toDate().getTime() : new Date(value || 0).getTime();
+          return getTime(b.createdAt) - getTime(a.createdAt);
+        });
+        setOwnerNotifications(rows);
+      },
+      (error) => console.error('Owner notifications listener failed:', error)
+    );
+
+    const chatsQuery = query(
+      collection(db, 'bookingChats'),
+      where('ownerId', '==', ownerId)
+    );
+    const unsubscribeChats = onSnapshot(
+      chatsQuery,
+      async (snapshot) => {
+        const rawChats = snapshot.docs.map((item) => ({
+          id: item.id,
+          ...item.data(),
+        })) as OwnerChatNotice[];
+
+        // Resolve missing guest names from the guest profile/reservation.
+        // This keeps the header notification from displaying a generic "Guest".
+        const resolvedChats = await Promise.all(rawChats.map(async (chat) => {
+          if (chat.guestName?.trim()) return chat;
+
+          let resolvedName = '';
+
+          try {
+            if (chat.userId) {
+              const guestProfile = await getDoc(doc(db, 'users', chat.userId));
+              if (guestProfile.exists()) {
+                const profile = guestProfile.data() as Record<string, any>;
+                resolvedName =
+                  String(profile.fullName || profile.displayName || profile.name || '').trim();
+
+                if (!resolvedName) {
+                  resolvedName = [
+                    String(profile.firstName || '').trim(),
+                    String(profile.lastName || '').trim(),
+                  ].filter(Boolean).join(' ');
+                }
+
+                if (!resolvedName && typeof profile.email === 'string') {
+                  resolvedName = profile.email.split('@')[0].replace(/[._-]+/g, ' ').trim();
+                }
+              }
+            }
+
+            if (!resolvedName && chat.bookingId) {
+              const reservation = await getDoc(doc(db, 'reservations', chat.bookingId));
+              if (reservation.exists()) {
+                const booking = reservation.data();
+                resolvedName = String(
+                  booking.guest?.fullName ||
+                  booking.guest?.name ||
+                  booking.guestName ||
+                  ''
+                ).trim();
+              }
+            }
+
+            if (resolvedName) {
+              await updateDoc(doc(db, 'bookingChats', chat.id), {
+                guestName: resolvedName,
+              }).catch((writeError) => {
+                console.warn('Could not save resolved guest name:', writeError);
+              });
+            }
+          } catch (nameError) {
+            console.warn(`Could not resolve guest name for chat ${chat.id}:`, nameError);
+          }
+
+          return { ...chat, guestName: resolvedName || chat.guestName };
+        }));
+
+        setOwnerChatNotices(resolvedChats);
+      },
+      (error) => console.error('Owner chat notification listener failed:', error)
+    );
+
+    return () => {
+      unsubscribeNotifications();
+      unsubscribeChats();
+    };
+  }, [userData?.status]);
+
+  const unreadOwnerNotifications = ownerNotifications.filter((item) => !item.read);
+  const unreadOwnerChats = ownerChatNotices.filter((item) => Number(item.unreadForOwner || 0) > 0);
+  const ownerNotificationCount =
+    unreadOwnerNotifications.length +
+    unreadOwnerChats.reduce((total, item) => total + Number(item.unreadForOwner || 0), 0);
+
+  const markOwnerNotificationRead = async (notification: OwnerNotification) => {
+    try {
+      await updateDoc(doc(db, 'ownerNotifications', notification.id), {
+        read: true,
+        readAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error('Unable to mark notification as read:', error);
+    }
+  };
+
+  const markAllOwnerNotificationsRead = async () => {
+    await Promise.all([
+      ...unreadOwnerNotifications.map((item) =>
+        markOwnerNotificationRead(item)
+      ),
+      ...unreadOwnerChats.map((chat) =>
+        updateDoc(doc(db, 'bookingChats', chat.id), {
+          unreadForOwner: 0,
+          lastReadByOwnerAt: serverTimestamp(),
+        }).catch((error) => console.error('Unable to clear chat unread count:', error))
+      ),
+    ]);
+  };
+
+  const openOwnerNotification = async (notification: OwnerNotification) => {
+    await markOwnerNotificationRead(notification);
+    setShowOwnerNotifications(false);
+    setActiveOwnerTab('bookings');
+    setShowAllListings(false);
+  };
+
+  const openOwnerChatNotification = (chat: OwnerChatNotice) => {
+    setShowOwnerNotifications(false);
+    setPendingInquiryChatId(chat.id);
+    setActiveOwnerTab('inquiries');
+  };
 
   // =========================================================
   // MAP LOCATION PICKER - MAPLIBRE
@@ -1101,15 +1291,86 @@ const OwnerDashboard: React.FC = () => {
             </div>
 
             <div className="owner-header-actions">
-              <button
-                type="button"
-                className="owner-icon-btn"
-                aria-label="Notifications"
-                title="Notifications"
-              >
-                <IonIcon icon={notificationsOutline} />
-                <span className="owner-dot" />
-              </button>
+              <div className="owner-notification-wrap">
+                <button
+                  type="button"
+                  className={`owner-icon-btn ${ownerNotificationCount > 0 ? 'has-unread' : ''}`}
+                  aria-label={`Notifications${ownerNotificationCount ? `, ${ownerNotificationCount} unread` : ''}`}
+                  title="Notifications"
+                  aria-expanded={showOwnerNotifications}
+                  onClick={() => setShowOwnerNotifications((value) => !value)}
+                >
+                  <IonIcon icon={notificationsOutline} />
+                  {ownerNotificationCount > 0 && (
+                    <span className="owner-notification-badge">
+                      {ownerNotificationCount > 99 ? '99+' : ownerNotificationCount}
+                    </span>
+                  )}
+                </button>
+
+                {showOwnerNotifications && (
+                  <div className="owner-notification-panel">
+                    <div className="owner-notification-panel-head">
+                      <div>
+                        <strong>Notifications</strong>
+                        <small>Bookings and guest messages</small>
+                      </div>
+                      <button type="button" onClick={() => setShowOwnerNotifications(false)} aria-label="Close notifications">
+                        <IonIcon icon={closeOutline} />
+                      </button>
+                    </div>
+
+                    {(unreadOwnerNotifications.length > 0 || unreadOwnerChats.length > 0) ? (
+                      <div className="owner-notification-items">
+                        {unreadOwnerNotifications.map((item) => (
+                          <button
+                            type="button"
+                            className="owner-notification-item"
+                            key={item.id}
+                            onClick={() => void openOwnerNotification(item)}
+                          >
+                            <span className="owner-notification-item-icon"><IonIcon icon={calendarOutline} /></span>
+                            <span className="owner-notification-item-copy">
+                              <strong>New booking received</strong>
+                              <small>{item.guestName || 'Guest'} · {item.resortName || userData.resortName || 'Your resort'}</small>
+                              <small>{item.accommodationName || 'Accommodation'} · {item.referenceCode || item.bookingId || ''}</small>
+                            </span>
+                            <span className="owner-notification-unread-dot" />
+                          </button>
+                        ))}
+                        {unreadOwnerChats.map((chat) => (
+                          <button
+                            type="button"
+                            className="owner-notification-item"
+                            key={chat.id}
+                            onClick={() => void openOwnerChatNotification(chat)}
+                          >
+                            <span className="owner-notification-item-icon"><IonIcon icon={chatbubbleOutline} /></span>
+                            <span className="owner-notification-item-copy">
+                              <strong>New message from {chat.guestName || 'Guest account'}</strong>
+                              <small>{chat.lastMessage || 'Open the conversation to view the message.'}</small>
+                              <small>{chat.resortName || userData.resortName || 'Your resort'}</small>
+                            </span>
+                            <span className="owner-notification-count">{chat.unreadForOwner}</span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="owner-notification-empty">
+                        <IonIcon icon={notificationsOutline} />
+                        <strong>You're all caught up</strong>
+                        <span>New bookings and guest messages will appear here.</span>
+                      </div>
+                    )}
+
+                    {ownerNotificationCount > 0 && (
+                      <button type="button" className="owner-notification-mark-all" onClick={() => void markAllOwnerNotificationsRead()}>
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <button
                 type="button"
@@ -1185,7 +1446,12 @@ const OwnerDashboard: React.FC = () => {
               </section>
 
             ) : userData.status === 'approved' ? (
-              activeOwnerTab === 'settings' ? (
+              activeOwnerTab === 'inquiries' ? (
+                <OwnerInquiries
+                  initialChatId={pendingInquiryChatId}
+                  onInitialChatHandled={() => setPendingInquiryChatId(null)}
+                />
+              ) : activeOwnerTab === 'settings' ? (
                 <OwnerSettings
                   resortName={userData.resortName || ''}
                   resortLocation={userData.resortLocation || ''}
@@ -1489,7 +1755,12 @@ const OwnerDashboard: React.FC = () => {
                 <span>Villas</span>
               </button>
 
-              <button type="button" disabled title="Inquiries page is not available yet">
+              <button
+                type="button"
+                className={activeOwnerTab === 'inquiries' ? 'active' : ''}
+                onClick={() => { setActiveOwnerTab('inquiries'); setShowAllListings(false); }}
+                aria-current={activeOwnerTab === 'inquiries' ? 'page' : undefined}
+              >
                 <IonIcon icon={chatbubbleOutline} />
                 <span>Inquiries</span>
               </button>

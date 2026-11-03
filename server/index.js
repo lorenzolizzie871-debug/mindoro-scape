@@ -7,6 +7,7 @@ const axios = require("axios");
 const crypto = require("crypto");
 const path = require("path");
 const fs = require("fs");
+const cron = require("node-cron");
 
 // Firebase Admin modular SDK
 const { initializeApp, cert } = require("firebase-admin/app");
@@ -200,6 +201,153 @@ function buildPayPalReceipt({
     issuedBy: "paypal_backend",
   };
 }
+
+
+// ==================================================
+// 5A. AUTOMATIC BOOKING CANCELLATION
+// ==================================================
+
+function getManilaDateKey(value) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+    if (match) {
+      return `${match[1]}-${match[2]}-${match[3]}`;
+    }
+  }
+
+  let date = null;
+
+  if (typeof value === "string") {
+    date = new Date(value);
+  } else if (value instanceof Date) {
+    date = value;
+  } else if (typeof value.toDate === "function") {
+    date = value.toDate();
+  }
+
+  if (!date || Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Manila",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+
+  const get = (type) =>
+    parts.find((part) => part.type === type)?.value;
+
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
+async function autoCancelUnconfirmedReservations() {
+  try {
+    const today = getManilaDateKey(new Date());
+
+    const pendingStatuses = [
+      "pending",
+      "unconfirmed",
+      "awaiting_confirmation",
+      "pending_confirmation",
+    ];
+
+    const snapshot = await db
+      .collection("reservations")
+      .where("status", "in", pendingStatuses)
+      .get();
+
+    let cancelledCount = 0;
+
+    for (const bookingDoc of snapshot.docs) {
+      const bookingRef = bookingDoc.ref;
+
+      const wasCancelled = await db.runTransaction(
+        async (transaction) => {
+          const latestSnapshot = await transaction.get(bookingRef);
+
+          if (!latestSnapshot.exists) return false;
+
+          const booking = latestSnapshot.data();
+
+          const status = String(
+            booking.status || ""
+          ).toLowerCase();
+
+          const checkInDate = getManilaDateKey(
+            booking.checkIn
+          );
+
+          const stillPending =
+            pendingStatuses.includes(status);
+
+          const checkInStarted =
+            Boolean(checkInDate) && checkInDate <= today;
+
+          if (!stillPending || !checkInStarted) {
+            return false;
+          }
+
+          transaction.update(bookingRef, {
+            status: "cancelled",
+
+            cancellationType: "system_auto_cancel",
+
+            cancellationReason:
+              "Automatically cancelled because the resort owner did not confirm before the check-in date.",
+
+            autoCancelledAt: FieldValue.serverTimestamp(),
+
+            updatedAt: FieldValue.serverTimestamp(),
+          });
+
+          return true;
+        }
+      );
+
+      if (wasCancelled) {
+        cancelledCount++;
+
+        console.log(
+          `[AUTO-CANCEL] Reservation ${bookingDoc.id} cancelled.`
+        );
+      }
+    }
+
+    console.log(
+      `[AUTO-CANCEL] Completed. Cancelled ${cancelledCount} booking(s).`
+    );
+
+  } catch (error) {
+    console.error(
+      "[AUTO-CANCEL] Error:",
+      error
+    );
+  }
+}
+
+// Run immediately when backend starts.
+void autoCancelUnconfirmedReservations();
+
+// Run every 15 minutes.
+cron.schedule(
+  "*/15 * * * *",
+  () => {
+    void autoCancelUnconfirmedReservations();
+  },
+  {
+    timezone: "Asia/Manila",
+  }
+);
+
+console.log(
+  "[AUTO-CANCEL] Scheduler initialized."
+);
+
 
 // ==================================================
 // 6. FIREBASE AUTHENTICATION

@@ -1,0 +1,276 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+.oi-page {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 8px 0 34px;
+  color: #001c37;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+}
+.oi-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 4px 0 20px;
+}
+.oi-page-heading h2 {
+  margin: 5px 0 4px;
+  color: #001c37;
+  font-size: clamp(23px, 3vw, 29px);
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: -.035em;
+}
+.oi-page-heading p { margin: 0; color: #526879; font-size: 13px; line-height: 1.55; }
+.oi-kicker { color: #006685; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.oi-heading-actions { display: flex; align-items: center; gap: 10px; }
+.oi-count {
+  min-width: 92px; padding: 12px 15px; border: 1px solid #dce9f5;
+  border-radius: 15px; background: #eff4ff; text-align: center;
+}
+.oi-count strong, .oi-count span { display: block; }
+.oi-count strong { color: #00374e; font-size: 23px; line-height: 1.1; }
+.oi-count span { margin-top: 4px; color: #526879; font-size: 10px; font-weight: 700; }
+.oi-notification-button {
+  position: relative; display: grid; place-items: center; width: 46px; height: 46px;
+  border: 1px solid #dce9f5; border-radius: 14px; background: #fff; color: #07516b;
+  font-size: 21px; box-shadow: 0 4px 14px rgba(0,55,78,.06); cursor: pointer;
+}
+.oi-notification-button.has-notifications { border-color: #8bd4dc; background: #effbfc; }
+.oi-notification-button > span {
+  position: absolute; top: -7px; right: -7px; display: grid; place-items: center;
+  min-width: 20px; height: 20px; padding: 0 5px; border: 2px solid #fff; border-radius: 999px;
+  background: #e5484d; color: #fff; font-size: 9px; font-weight: 800;
+}
+.oi-toolbar { display: flex; gap: 9px; margin-bottom: 15px; }
+.oi-toolbar input {
+  width: 100%; min-width: 0; height: 48px; padding: 0 15px; border: 1px solid #e0e8f0;
+  border-radius: 13px; outline: none; background: #fff; color: #001c37; font: inherit;
+  font-size: 13px; box-shadow: 0 3px 12px rgba(0,55,78,.035);
+}
+.oi-toolbar input:focus, .oi-composer input:focus {
+  border-color: #33c9ff; box-shadow: 0 0 0 3px rgba(51,201,255,.13);
+}
+.oi-toolbar button {
+  width: 48px; flex: 0 0 48px; border: 1px solid #dce9f5; border-radius: 13px;
+  background: #eff4ff; color: #00374e; font-size: 19px; cursor: pointer;
+}
+.oi-conversation-list { display: grid; gap: 12px; }
+.oi-conversation-card {
+  display: flex; align-items: center; gap: 13px; width: 100%; min-width: 0; padding: 16px;
+  border: 1px solid #e2eaf2; border-radius: 17px; background: #fff; color: inherit;
+  text-align: left; box-shadow: 0 4px 18px rgba(11,79,108,.055);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; cursor: pointer;
+}
+.oi-conversation-card:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(11,79,108,.09); }
+.oi-conversation-card.has-unread { border-color: #65c5ce; background: #effbfc; box-shadow: 0 5px 18px rgba(11,156,168,.10); }
+.oi-avatar {
+  display: grid; place-items: center; width: 45px; height: 45px; flex: 0 0 45px;
+  border-radius: 50%; background: #bfe9ff; color: #00374e; font-size: 29px;
+}
+.oi-conversation-main { min-width: 0; flex: 1; }
+.oi-conversation-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.oi-conversation-top strong {
+  overflow: hidden; color: #001c37; font-size: 14px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap;
+}
+.oi-conversation-top time { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; color: #71808c; font-size: 10px; }
+.oi-booking-meta { display: block; overflow: hidden; margin-top: 4px; color: #006685; font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.oi-conversation-main p { overflow: hidden; margin: 8px 0 0; color: #526879; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.oi-unread-badge {
+  display: inline-flex; margin-top: 7px; padding: 4px 8px; border-radius: 999px;
+  background: #d9f5f4; color: #006c73; font-size: 9px; font-weight: 800;
+}
+.oi-open-chevron { color: #006685; font-size: 25px; }
+.oi-empty, .oi-empty-inline {
+  padding: 34px 22px; border: 1px dashed #c9d9e8; border-radius: 18px;
+  background: rgba(255,255,255,.92); text-align: center;
+}
+.oi-empty-icon {
+  display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 13px;
+  border-radius: 50%; background: #bfe9ff; color: #00374e; font-size: 27px;
+}
+.oi-empty h3 { margin: 0 0 7px; font-size: 17px; }
+.oi-empty p { max-width: 430px; margin: 0 auto; color: #607586; font-size: 12px; line-height: 1.6; }
+.oi-loading { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 130px; color: #006685; font-size: 13px; }
+
+/* Fixed chat frame: only the messages area scrolls, not the chat header/composer */
+.oi-chat-page {
+  display: flex; flex-direction: column; max-width: 900px;
+  height: calc(100dvh - 150px); min-height: 500px; max-height: 900px;
+  padding-bottom: 0; overflow: hidden;
+}
+.oi-chat-topbar { flex: 0 0 auto; padding-bottom: 12px; }
+.oi-back-button {
+  display: inline-flex; align-items: center; gap: 7px; margin-bottom: 9px; padding: 8px 12px;
+  border: 1px solid #dce9f5; border-radius: 999px; background: #eff4ff; color: #00374e;
+  font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.oi-chat-title h2 { margin: 4px 0; color: #001c37; font-size: 21px; font-weight: 800; }
+.oi-chat-title p { margin: 0; color: #526879; font-size: 11px; line-height: 1.5; }
+.oi-chat-card {
+  display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; overflow: hidden;
+  border: 1px solid #e2eaf2; border-radius: 18px; background: #fff;
+  box-shadow: 0 4px 20px rgba(11,79,108,.07);
+}
+.oi-chat-context {
+  display: flex; flex: 0 0 auto; align-items: center; gap: 11px; padding: 12px 16px;
+  border-bottom: 1px solid #e7edf4; background: #f4faff;
+}
+.oi-context-avatar {
+  display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px;
+  border-radius: 50%; background: #dff3fb; color: #07516b; font-size: 27px;
+}
+.oi-context-details { min-width: 0; flex: 1; }
+.oi-context-details strong, .oi-context-details span, .oi-context-details small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.oi-context-details strong { color: #00374e; font-size: 12px; }
+.oi-context-details span { margin-top: 2px; color: #006685; font-size: 10px; font-weight: 700; }
+.oi-context-details small { margin-top: 2px; color: #71808c; font-size: 9px; }
+.oi-live-pill { padding: 6px 9px; border: 1px solid #cce8eb; border-radius: 999px; background: #fff; color: #087c83; font-size: 9px; font-weight: 800; white-space: nowrap; }
+.oi-message-list {
+  display: flex; flex: 1 1 auto; flex-direction: column; gap: 13px; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain; padding: 18px;
+  background: #f8fbfd; scrollbar-gutter: stable;
+}
+.oi-message-row { display: flex; flex: 0 0 auto; width: 100%; }
+.oi-message-row.is-owner { justify-content: flex-end; }
+.oi-message-row.is-guest { justify-content: flex-start; }
+.oi-message-bubble {
+  max-width: min(78%, 560px); padding: 11px 13px 9px; border: 1px solid #e2eaf2;
+  border-radius: 15px 15px 15px 4px; background: #fff; color: #12394d;
+  box-shadow: 0 2px 8px rgba(0,55,78,.035);
+}
+.oi-message-row.is-owner .oi-message-bubble {
+  border-color: #07516b; border-radius: 15px 15px 4px 15px; background: #07516b; color: #fff;
+}
+.oi-message-bubble p { margin: 0; font-size: 13px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.oi-message-bubble time { display: block; margin-top: 6px; color: #7d8b97; font-size: 9px; text-align: right; }
+.oi-message-row.is-owner .oi-message-bubble time { color: rgba(255,255,255,.72); }
+.oi-sender-name { display: block; margin-bottom: 5px; color: #07516b; font-size: 10px; font-weight: 850; }
+.oi-message-row.is-owner .oi-sender-name { color: #d5f4ff; }
+.oi-new-label {
+  display: inline-flex; margin: 0 0 7px; padding: 4px 7px; border-radius: 20px;
+  background: #0b9ca8; color: #fff; font-size: 8px; font-weight: 900; letter-spacing: .06em;
+}
+.oi-message-row.is-new-message .oi-message-bubble {
+  border: 1.5px solid #0b9ca8; background: #e6fafa; color: #12394d;
+  box-shadow: 0 0 0 3px rgba(11,156,168,.12), 0 4px 14px rgba(11,156,168,.08);
+}
+.oi-message-row.is-new-message .oi-sender-name { color: #07516b; }
+.oi-message-row.is-new-message .oi-message-bubble time { color: #607586; }
+.oi-request-label { display: block; margin-bottom: 6px; color: #b54708; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.oi-request-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.oi-request-actions button {
+  padding: 7px 10px; border: 0; border-radius: 999px; background: #00374e; color: #fff;
+  font: inherit; font-size: 10px; font-weight: 700; cursor: pointer;
+}
+.oi-request-actions .oi-decline { background: #ffdad6; color: #93000a; }
+.oi-composer {
+  display: flex; flex: 0 0 auto; gap: 9px; padding: 12px;
+  border-top: 1px solid #e7edf4; background: #fff;
+}
+.oi-composer input {
+  flex: 1; min-width: 0; height: 46px; padding: 0 14px; border: 1px solid #d5e2eb;
+  border-radius: 13px; outline: none; background: #fff !important; color: #12394d !important;
+  -webkit-text-fill-color: #12394d; caret-color: #07516b; font-family: inherit; font-size: 13px;
+}
+.oi-composer input::placeholder { color: #8799a5; opacity: 1; }
+.oi-composer button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-width: 88px;
+  padding: 0 14px; border: 0; border-radius: 12px; background: #07516b; color: #fff;
+  font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.oi-composer button:disabled { opacity: .5; cursor: not-allowed; }
+.oi-security-note { flex: 0 0 auto; margin: 0; padding: 0 15px 11px; color: #71808c; font-size: 9px; line-height: 1.45; background: #fff; }
+.oi-error { flex: 0 0 auto; margin: 8px 12px; color: #ba1a1a; font-size: 12px; }
+
+@media (max-width: 600px) {
+  .oi-page { padding-top: 2px; }
+  .oi-page-heading { align-items: flex-start; }
+  .oi-heading-actions { gap: 7px; }
+  .oi-count { min-width: 75px; padding: 10px; }
+  .oi-notification-button { width: 42px; height: 42px; }
+  .oi-conversation-card { gap: 10px; padding: 13px; }
+  .oi-avatar { width: 40px; height: 40px; flex-basis: 40px; }
+  .oi-conversation-top { align-items: flex-start; flex-direction: column; gap: 2px; }
+  .oi-chat-page { height: calc(100dvh - 110px); min-height: 420px; }
+  .oi-chat-context { padding: 10px 11px; }
+  .oi-live-pill { display: none; }
+  .oi-message-list { padding: 13px 11px; }
+  .oi-message-bubble { max-width: 88%; }
+  .oi-composer { padding: 9px; }
+  .oi-composer input { height: 44px; background: #fff !important; color: #12394d !important; }
+  .oi-composer button { min-width: 48px; padding: 0 12px; }
+  .oi-composer button span { display: none; }
+  .oi-notification-heading { align-items: flex-start; }
+  .oi-notification-item { padding: 11px; }
+}
+
+
+/* Final chat layout safeguards: keep the composer visible while messages scroll. */
+.oi-chat-page {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100%;
+  height: calc(100dvh - 205px) !important;
+  min-height: 360px !important;
+  max-height: 760px;
+  overflow: hidden !important;
+  padding-bottom: 0 !important;
+}
+
+.oi-chat-topbar {
+  flex: 0 0 auto !important;
+}
+
+.oi-chat-card {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+.oi-chat-context {
+  flex: 0 0 auto !important;
+}
+
+.oi-message-list {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+
+.oi-composer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex !important;
+  flex: 0 0 auto !important;
+  width: 100%;
+  background: #fff !important;
+  padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+}
+
+.oi-security-note,
+.oi-error {
+  flex: 0 0 auto !important;
+}
+
+@media (max-width: 600px) {
+  .oi-chat-page {
+    height: calc(100dvh - 165px) !important;
+    min-height: 330px !important;
+    max-height: none;
+  }
+
+  .oi-chat-card {
+    border-radius: 14px;
+  }
+
+  .oi-composer {
+    padding: 9px 9px max(9px, env(safe-area-inset-bottom)) !important;
+  }
+}
