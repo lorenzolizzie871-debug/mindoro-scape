@@ -8,7 +8,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 import {
 
-  addDoc, collection, doc, getDoc, serverTimestamp, setDoc
+  addDoc, collection, doc, getDoc, serverTimestamp
 
 } from 'firebase/firestore';
 
@@ -25,8 +25,14 @@ import { auth, db } from '../firebase';
 import './ResortDetail.css';
 
 import './Reservation.css';
+import './Reservation.overrides.css';
+import './BookingSchedule.css';
+
+
 
 type ServiceUnit = 'fixed' | 'per_person' | 'per_hour';
+
+
 
 type AddOn = {
 
@@ -41,6 +47,8 @@ type AddOn = {
   included?: boolean;
 
 };
+
+
 
 type Rate = {
 
@@ -66,10 +74,89 @@ type Rate = {
 
 };
 
+
+type BookingSessionKey = 'day' | 'night';
+type BookingSessionConfig = {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+};
+type BookingSchedule = {
+  availableDays: string[];
+  sessions: {
+    day: BookingSessionConfig;
+    night: BookingSessionConfig;
+  };
+  extension: {
+    enabled: boolean;
+    feePerHour: number;
+    maxHours: number;
+  };
+};
+
+const BOOKING_DAYS = [
+  { value: 'monday', label: 'Monday' },
+  { value: 'tuesday', label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday', label: 'Thursday' },
+  { value: 'friday', label: 'Friday' },
+  { value: 'saturday', label: 'Saturday' },
+  { value: 'sunday', label: 'Sunday' },
+];
+
+const DEFAULT_BOOKING_SCHEDULE: BookingSchedule = {
+  availableDays: BOOKING_DAYS.map((day) => day.value),
+  sessions: {
+    day: { enabled: true, startTime: '08:00', endTime: '17:00' },
+    night: { enabled: true, startTime: '18:00', endTime: '00:00' },
+  },
+  extension: { enabled: false, feePerHour: 0, maxHours: 4 },
+};
+
+const normalizeBookingSchedule = (value?: Partial<BookingSchedule> | null): BookingSchedule => {
+  const source = value || {};
+  const days = Array.isArray(source.availableDays)
+    ? source.availableDays.filter((day): day is string =>
+        BOOKING_DAYS.some((valid) => valid.value === String(day).toLowerCase())
+      ).map((day) => String(day).toLowerCase())
+    : [...DEFAULT_BOOKING_SCHEDULE.availableDays];
+
+  return {
+    availableDays: [...new Set(days)],
+    sessions: {
+      day: {
+        ...DEFAULT_BOOKING_SCHEDULE.sessions.day,
+        ...(source.sessions?.day || {}),
+      },
+      night: {
+        ...DEFAULT_BOOKING_SCHEDULE.sessions.night,
+        ...(source.sessions?.night || {}),
+      },
+    },
+    extension: {
+      ...DEFAULT_BOOKING_SCHEDULE.extension,
+      ...(source.extension || {}),
+      feePerHour: Math.max(0, Number(source.extension?.feePerHour ?? DEFAULT_BOOKING_SCHEDULE.extension.feePerHour) || 0),
+      maxHours: Math.min(12, Math.max(1, Number(source.extension?.maxHours ?? DEFAULT_BOOKING_SCHEDULE.extension.maxHours) || 4)),
+    },
+  };
+};
+
+const formatScheduleTime = (value: string) => {
+  const [hourText, minuteText] = String(value || '').split(':');
+  const hour = Number(hourText);
+  const minute = minuteText || '00';
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return value;
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minute} ${suffix}`;
+};
+
+
+
+
 type ResortDoc = {
-  // Owner UID saved on the resort/package document.
-  ownerId?: string;
-  ownerUid?: string;
+
   name?: string;
 
   resortName?: string;
@@ -80,10 +167,22 @@ type ResortDoc = {
 
   address?: string;
 
-  imageUrl?: string;
-
-  imageUrls?: string[];
-
+  imageUrl?: unknown;
+  imageUrls?: unknown;
+  photos?: unknown;
+  images?: unknown;
+  gallery?: unknown;
+  coverImage?: unknown;
+  description?: string;
+  amenities?: string[];
+  resortType?: string;
+  category?: string;
+  poolAccess?: {
+    enabled?: boolean;
+    included?: boolean;
+    price?: number;
+    pricingType?: 'bulk' | 'per_person' | string | null;
+  };
   pricingOptions?: Rate[];
 
   addOns?: AddOn[];
@@ -96,9 +195,25 @@ type ResortDoc = {
 
   availability?: string;
 
+  ownerId?: string;
+
+  bookingSchedule?: BookingSchedule;
+
   status?: string;
 
 };
+
+
+
+type PaymentResponse = {
+
+  checkoutUrl?: string;
+
+  checkout_url?: string;
+
+};
+
+
 
 type SelectedAddOn = {
 
@@ -118,9 +233,13 @@ type SelectedAddOn = {
 
 };
 
+
+
 const php = (amount: number) =>
 
   `₱${Math.max(0, amount).toLocaleString('en-PH', { maximumFractionDigits: 2 })}`;
+
+
 
 const localDate = (date: Date) => {
 
@@ -134,6 +253,8 @@ const localDate = (date: Date) => {
 
 };
 
+
+
 const plusDays = (value: string, count: number) => {
 
   const date = new Date(`${value}T12:00:00`);
@@ -144,6 +265,8 @@ const plusDays = (value: string, count: number) => {
 
 };
 
+
+
 const stayDays = (from: string, to: string) =>
 
   Math.max(1, Math.round(
@@ -153,6 +276,8 @@ const stayDays = (from: string, to: string) =>
       new Date(`${from}T12:00:00`).getTime()) / 86400000
 
   ));
+
+
 
 const unitLabel = (unit: string) => ({
 
@@ -172,6 +297,8 @@ const unitLabel = (unit: string) => ({
 
 }[unit] || `per ${unit || 'package'}`);
 
+
+
 const serviceUnitLabel = (unit?: string) => ({
 
   fixed: 'One-time fee',
@@ -182,9 +309,13 @@ const serviceUnitLabel = (unit?: string) => ({
 
 }[unit || 'fixed'] || 'One-time fee');
 
+
+
 const makeReference = () =>
 
   `MND-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+
 
 const Reservation: React.FC = () => {
 
@@ -198,6 +329,8 @@ const Reservation: React.FC = () => {
 
   const rateIndex = Math.max(0, Number(searchParams.get('rate') || 0));
 
+
+
   const [resort, setResort] = useState<ResortDoc | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -205,6 +338,8 @@ const Reservation: React.FC = () => {
   const [loadError, setLoadError] = useState('');
 
   const [userReady, setUserReady] = useState(false);
+
+
 
   const [fullName, setFullName] = useState('');
 
@@ -214,9 +349,17 @@ const Reservation: React.FC = () => {
 
   const [notes, setNotes] = useState('');
 
+
+
   const [checkIn, setCheckIn] = useState(() => plusDays(localDate(new Date()), 1));
 
   const [checkOut, setCheckOut] = useState(() => plusDays(localDate(new Date()), 1));
+
+  const [bookingSession, setBookingSession] = useState<BookingSessionKey>('day');
+
+  const [extensionHours, setExtensionHours] = useState(0);
+
+
 
   const [adults, setAdults] = useState(2);
 
@@ -225,6 +368,8 @@ const Reservation: React.FC = () => {
   const [childAges, setChildAges] = useState('');
 
   const [quantity, setQuantity] = useState(1);
+
+
 
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
@@ -235,6 +380,10 @@ const Reservation: React.FC = () => {
   const [error, setError] = useState('');
 
   const [successReference, setSuccessReference] = useState('');
+  const [summaryPhotoIndex, setSummaryPhotoIndex] = useState(0);
+  const [includePoolAccess, setIncludePoolAccess] = useState(false);
+
+
 
   useEffect(() => {
 
@@ -247,6 +396,8 @@ const Reservation: React.FC = () => {
       return;
 
     }
+
+
 
     let active = true;
 
@@ -272,11 +423,15 @@ const Reservation: React.FC = () => {
 
     };
 
+
+
     void load();
 
     return () => { active = false; };
 
   }, [id]);
+
+
 
   useEffect(() => {
 
@@ -295,6 +450,8 @@ const Reservation: React.FC = () => {
         return;
 
       }
+
+
 
       setEmail(user.email || '');
 
@@ -322,13 +479,19 @@ const Reservation: React.FC = () => {
 
     });
 
+
+
     return unsubscribe;
 
   }, []);
 
+
+
   const rates = useMemo<Rate[]>(() => {
 
     if (!resort) return [];
+
+
 
     if (Array.isArray(resort.pricingOptions) && resort.pricingOptions.length) {
 
@@ -340,6 +503,8 @@ const Reservation: React.FC = () => {
 
     }
 
+
+
     return Number(resort.price) > 0
 
       ? [{ unit: resort.priceUnit || 'package', price: Number(resort.price) }]
@@ -348,9 +513,42 @@ const Reservation: React.FC = () => {
 
   }, [resort]);
 
+
+
   const rate = rates[rateIndex] || rates[0];
 
-  const nights = stayDays(checkIn, checkOut);
+  useEffect(() => {
+    setIncludePoolAccess(Boolean(resort?.poolAccess?.included));
+  }, [resort?.poolAccess?.enabled, resort?.poolAccess?.included, id]);
+
+  const bookingSchedule = useMemo(
+    () => normalizeBookingSchedule(resort?.bookingSchedule),
+    [resort?.bookingSchedule]
+  );
+
+  const selectedDateDayKey = checkIn
+    ? new Date(`${checkIn}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
+    : '';
+
+  const isSelectedDateAvailable = bookingSchedule.availableDays.includes(selectedDateDayKey);
+
+  const availableBookingSessions = (['day', 'night'] as BookingSessionKey[])
+    .filter((session) => bookingSchedule.sessions[session].enabled);
+
+  const selectedSessionConfig = bookingSchedule.sessions[bookingSession];
+
+  const nights = rate?.unit === 'night' ? stayDays(checkIn, checkOut) : 1;
+
+  useEffect(() => {
+    if (!availableBookingSessions.includes(bookingSession) && availableBookingSessions.length > 0) {
+      setBookingSession(availableBookingSessions[0]);
+    }
+    if (!bookingSchedule.extension.enabled) setExtensionHours(0);
+  }, [bookingSchedule, bookingSession, availableBookingSessions.join('|')]);
+
+  const extensionTotal = bookingSchedule.extension.enabled
+    ? bookingSchedule.extension.feePerHour * extensionHours
+    : 0;
 
   const parsedAges = childAges.split(',').map(v => v.trim()).filter(Boolean).map(Number);
 
@@ -365,6 +563,8 @@ const Reservation: React.FC = () => {
   const chargeableChildren = Math.max(0, children - freeChildren);
 
   const guestCount = adults + chargeableChildren;
+
+
 
   // Prefer services saved inside the selected pricing option.
 
@@ -385,6 +585,8 @@ const Reservation: React.FC = () => {
       ? rateServices
 
       : (Array.isArray(resort?.addOns) ? resort.addOns : []);
+
+
 
     return source
 
@@ -411,6 +613,8 @@ const Reservation: React.FC = () => {
       }));
 
   }, [rate, resort]);
+
+
 
   // Start with included services selected, plus services the guest selected
 
@@ -442,6 +646,8 @@ const Reservation: React.FC = () => {
 
   }, [availableServices, location.state]);
 
+
+
   const baseSubtotal = useMemo(() => {
 
     if (!rate) return 0;
@@ -463,6 +669,8 @@ const Reservation: React.FC = () => {
     return rate.price * quantity;
 
   }, [rate, guestCount, quantity, nights]);
+
+
 
   const selectedServices = useMemo<SelectedAddOn[]>(() => {
 
@@ -508,9 +716,21 @@ const Reservation: React.FC = () => {
 
   }, [availableServices, selectedServiceIds, guestCount, rate, quantity]);
 
+
+
   const addOnTotal = selectedServices.reduce((sum, service) => sum + service.total, 0);
 
-  const total = baseSubtotal + addOnTotal;
+  const poolAccessTotal = resort?.poolAccess?.enabled
+    ? resort.poolAccess.included
+      ? 0
+      : includePoolAccess
+        ? Number(resort.poolAccess.price || 0) * (resort.poolAccess.pricingType === 'per_person' ? guestCount : 1)
+        : 0
+    : 0;
+
+  const total = baseSubtotal + addOnTotal + extensionTotal + poolAccessTotal;
+
+
 
   const resortName = resort?.resortName || resort?.name || 'Resort';
 
@@ -518,8 +738,55 @@ const Reservation: React.FC = () => {
 
   const resortLocation = resort?.locationLabel || resort?.resortLocation || resort?.address || 'Location not provided';
 
-  const image = resort?.imageUrls?.[0] || resort?.imageUrl || '';
-  const resortOwnerId = String(resort?.ownerId || resort?.ownerUid || '').trim();
+  const photos = useMemo(() => {
+    if (!resort) return [];
+
+    const collectImages = (value: unknown): string[] => {
+      if (typeof value === 'string') {
+        const item = value.trim();
+        if (!item) return [];
+        if (item.startsWith('[') && item.endsWith(']')) {
+          try {
+            const parsed: unknown = JSON.parse(item);
+            if (Array.isArray(parsed)) return parsed.flatMap(collectImages);
+          } catch {
+            // Keep an invalid JSON-looking value as a single image string.
+          }
+        }
+        return [item];
+      }
+      if (Array.isArray(value)) return value.flatMap(collectImages);
+      if (value && typeof value === 'object') {
+        const item = value as Record<string, unknown>;
+        const direct = item.url ?? item.src ?? item.downloadURL ??
+          item.downloadUrl ?? item.secure_url ?? item.fileUrl ?? item.dataUrl;
+        if (typeof direct === 'string' && direct.trim()) return collectImages(direct);
+        if (typeof item.base64 === 'string' && item.base64.trim()) {
+          const raw = item.base64.trim();
+          return [raw.startsWith('data:') ? raw : `data:image/jpeg;base64,${raw}`];
+        }
+      }
+      return [];
+    };
+
+    return [
+      ...collectImages(resort.imageUrls),
+      ...collectImages(resort.photos),
+      ...collectImages(resort.images),
+      ...collectImages(resort.gallery),
+      ...collectImages(resort.imageUrl),
+      ...collectImages(resort.coverImage),
+    ].filter((photo, index, all) => all.indexOf(photo) === index);
+  }, [resort]);
+
+  useEffect(() => {
+    setSummaryPhotoIndex((current) => Math.min(current, Math.max(0, photos.length - 1)));
+  }, [photos.length]);
+
+  const image = photos[summaryPhotoIndex] || '';
+  const packageAmenities = Array.isArray(resort?.amenities)
+    ? resort.amenities.filter((item): item is string => typeof item === 'string' && !!item.trim())
+    : [];
 
   const toggleService = (service: AddOn) => {
 
@@ -537,19 +804,25 @@ const Reservation: React.FC = () => {
 
   };
 
+
+
   const changeDate = (value: string) => {
 
     setCheckIn(value);
 
-    if (checkOut < value) setCheckOut(value);
+    if (rate?.unit !== 'night' || checkOut < value) setCheckOut(value);
 
   };
+
+
 
   const submit = async (event: React.FormEvent) => {
 
     event.preventDefault();
 
     setError('');
+
+
 
     const user = auth.currentUser;
 
@@ -567,13 +840,6 @@ const Reservation: React.FC = () => {
 
       return;
 
-    }
-
-    if (!resortOwnerId) {
-      setError(
-        'This resort listing is missing its owner ID. Please contact the resort administrator before making a reservation.'
-      );
-      return;
     }
 
     if (resort?.availability === 'unavailable' || resort?.status !== 'published') {
@@ -600,6 +866,8 @@ const Reservation: React.FC = () => {
 
     }
 
+
+
     const today = localDate(new Date());
 
     if (checkIn < today) {
@@ -618,6 +886,26 @@ const Reservation: React.FC = () => {
 
     }
 
+    if (!isSelectedDateAvailable) {
+      setError('The selected date is not available. Please choose one of the days shown in the resort availability schedule.');
+      return;
+    }
+
+    if (!selectedSessionConfig.enabled) {
+      setError('The selected booking session is not available. Please choose another session.');
+      return;
+    }
+
+    if (extensionHours > 0 && !bookingSchedule.extension.enabled) {
+      setError('Session extension is not offered for this accommodation.');
+      return;
+    }
+
+    if (extensionHours > bookingSchedule.extension.maxHours) {
+      setError(`The maximum extension allowed is ${bookingSchedule.extension.maxHours} hour(s).`);
+      return;
+    }
+
     if (children > 0 && freeUnder > 0 && parsedAges.length !== children) {
 
       setError(`Please enter the age of each child, separated by commas, to apply the under-${freeUnder} free-child policy.`);
@@ -634,6 +922,8 @@ const Reservation: React.FC = () => {
 
     }
 
+
+
     setSubmitting(true);
 
     try {
@@ -646,7 +936,7 @@ const Reservation: React.FC = () => {
 
         userId: user.uid,
 
-        ownerId: resortOwnerId,
+        ownerId: resort.ownerId || '',
 
         resortId: decodeURIComponent(id),
 
@@ -655,6 +945,21 @@ const Reservation: React.FC = () => {
         accommodationName,
 
         resortLocation,
+        resortType: resort.resortType || resort.category || 'Resort',
+        packageDescription: resort.description || '',
+        packageAmenities,
+        packagePoolAccess: resort.poolAccess || null,
+        poolAccess: resort.poolAccess?.enabled
+          ? {
+              enabled: true,
+              included: Boolean(resort.poolAccess.included),
+              selected: Boolean(resort.poolAccess.included || includePoolAccess),
+              pricingType: resort.poolAccess.pricingType || 'bulk',
+              unitPrice: Number(resort.poolAccess.price || 0),
+              quantity: resort.poolAccess.pricingType === 'per_person' ? guestCount : 1,
+              total: poolAccessTotal,
+            }
+          : null,
 
         rateIndex,
 
@@ -686,6 +991,30 @@ const Reservation: React.FC = () => {
 
         checkOut,
 
+        bookingDate: checkIn,
+
+        bookingSession: {
+          key: bookingSession,
+          label: bookingSession === 'day' ? 'Day session' : 'Night session',
+          startTime: selectedSessionConfig.startTime,
+          endTime: selectedSessionConfig.endTime,
+        },
+
+        bookingSchedule: {
+          availableDays: [...bookingSchedule.availableDays],
+          sessions: {
+            day: { ...bookingSchedule.sessions.day },
+            night: { ...bookingSchedule.sessions.night },
+          },
+          extension: { ...bookingSchedule.extension },
+        },
+
+        extension: {
+          hours: extensionHours,
+          feePerHour: bookingSchedule.extension.enabled ? bookingSchedule.extension.feePerHour : 0,
+          total: extensionTotal,
+        },
+
         nights,
 
         adults,
@@ -709,6 +1038,10 @@ const Reservation: React.FC = () => {
           baseSubtotal,
 
           addOnTotal,
+
+          extensionTotal,
+
+          poolAccessTotal,
 
           subtotal: baseSubtotal,
 
@@ -742,116 +1075,45 @@ const Reservation: React.FC = () => {
 
       };
 
+
+
       const reservationRef = await addDoc(collection(db, 'reservations'), reservationPayload);
 
-      // Create a persistent owner-side notification. This is deliberately
 
-      // isolated so a notification write failure never invalidates a saved booking.
-
-      if (reservationPayload.ownerId) {
-
-        try {
-
-          await setDoc(
-
-            doc(db, 'ownerNotifications', `booking_${reservationRef.id}`),
-
-            {
-
-              ownerId: reservationPayload.ownerId,
-
-              type: 'new_booking',
-
-              bookingId: reservationRef.id,
-
-              guestName: reservationPayload.guest.fullName,
-
-              resortName: reservationPayload.resortName,
-
-              accommodationName: reservationPayload.accommodationName,
-
-              referenceCode: reservationPayload.referenceCode,
-
-              checkIn: reservationPayload.checkIn,
-
-              checkOut: reservationPayload.checkOut,
-
-              createdAt: serverTimestamp(),
-
-              read: false,
-
-            }
-
-          );
-
-        } catch (notificationError) {
-
-          console.error(
-
-            'Reservation saved, but owner notification could not be created:',
-
-            notificationError
-
-          );
-
-        }
-
-      }
 
       if (paymentMethod === 'paypal') {
-
         const idToken = await user.getIdToken();
 
         const response = await fetch('http://localhost:3000/api/paypal/create-order', {
-
           method: 'POST',
-
           headers: {
-
             'Content-Type': 'application/json',
-
             Authorization: `Bearer ${idToken}`,
-
           },
-
           body: JSON.stringify({ reservationId: reservationRef.id }),
-
         });
 
         const result = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-
           throw new Error(result.message || 'Unable to create PayPal order.');
-
         }
 
         const approvalUrl = result.approvalUrl as string | undefined;
-
         if (!approvalUrl) {
-
           throw new Error('PayPal did not return an approval URL. Your reservation is saved as pending and unpaid.');
-
         }
 
         const parsedUrl = new URL(approvalUrl);
-
         if (
-
           parsedUrl.protocol !== 'https:' ||
-
           parsedUrl.hostname !== 'www.sandbox.paypal.com'
-
         ) {
-
           throw new Error('The PayPal Sandbox checkout URL is invalid.');
-
         }
 
         window.location.assign(parsedUrl.toString());
-
         return;
-
       }
 
       setSuccessReference(referenceCode);
@@ -874,6 +1136,8 @@ const Reservation: React.FC = () => {
 
   };
 
+
+
   if (loading) {
 
     return (
@@ -891,6 +1155,8 @@ const Reservation: React.FC = () => {
     );
 
   }
+
+
 
   if (loadError || !resort || !rate) {
 
@@ -922,6 +1188,8 @@ const Reservation: React.FC = () => {
 
   }
 
+
+
   return (
 
     <IonPage className="rd-page rv-page">
@@ -946,11 +1214,31 @@ const Reservation: React.FC = () => {
 
         </header>
 
+
+
         <main className="rv-main">
 
           <div className="rv-card rv-summary">
 
-            <div className="rv-summary-image">{image && <img src={image} alt={resortName} />}</div>
+            <div className="rv-summary-image rv-summary-gallery">
+              {image && (
+                <img
+                  key={`${summaryPhotoIndex}-${image}`}
+                  src={image}
+                  alt={`${resortName} photo ${summaryPhotoIndex + 1}`}
+                  onError={(event) => { event.currentTarget.style.visibility = 'hidden'; }}
+                />
+              )}
+              {photos.length > 1 && (
+                <>
+                  <button type="button" className="rv-photo-arrow previous" aria-label="Previous accommodation photo"
+                    onClick={() => setSummaryPhotoIndex((current) => (current - 1 + photos.length) % photos.length)}>‹</button>
+                  <button type="button" className="rv-photo-arrow next" aria-label="Next accommodation photo"
+                    onClick={() => setSummaryPhotoIndex((current) => (current + 1) % photos.length)}>›</button>
+                  <span className="rv-photo-count">{summaryPhotoIndex + 1}/{photos.length}</span>
+                </>
+              )}
+            </div>
 
             <div className="rv-summary-info">
 
@@ -972,7 +1260,60 @@ const Reservation: React.FC = () => {
 
           </div>
 
+
+
+          {(resort.description || packageAmenities.length > 0 || resort.poolAccess?.enabled) && (
+            <section className="rv-package-details rv-card">
+              <div className="rv-package-details-heading">
+                <div>
+                  <small>ACCOMMODATION DETAILS</small>
+                  <h3>{resort.resortType || resort.category || 'Package information'}</h3>
+                </div>
+                {photos.length > 1 && <span>{photos.length} photos</span>}
+              </div>
+              {resort.description && <p className="rv-package-description">{resort.description}</p>}
+              {packageAmenities.length > 0 && (
+                <div className="rv-package-amenities">
+                  <strong>Available amenities</strong>
+                  <div>{packageAmenities.map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}</div>
+                </div>
+              )}
+              {resort.poolAccess?.enabled && (
+                <div className="rv-package-pool">
+                  <strong>Pool access</strong>
+                  <span>
+                    {resort.poolAccess.included
+                      ? 'Included in this accommodation'
+                      : `${php(Number(resort.poolAccess.price || 0))} ${resort.poolAccess.pricingType === 'per_person' ? 'per guest' : 'one-time fee'}`}
+                  </span>
+                </div>
+              )}
+            </section>
+          )}
+
           <form onSubmit={submit} noValidate>
+            {resort.poolAccess?.enabled && (
+              <section className="rv-section rv-pool-choice-section">
+                <div className="rv-section-heading"><h3>Pool Access</h3></div>
+                <label className="rv-pool-choice">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(resort.poolAccess.included || includePoolAccess)}
+                    disabled={Boolean(resort.poolAccess.included)}
+                    onChange={(event) => setIncludePoolAccess(event.target.checked)}
+                  />
+                  <span>
+                    <strong>{resort.poolAccess.included ? 'Pool access included' : 'Add pool access to this reservation'}</strong>
+                    <small>
+                      {resort.poolAccess.included
+                        ? 'This package already includes pool access at no extra cost.'
+                        : `${php(Number(resort.poolAccess.price || 0))} ${resort.poolAccess.pricingType === 'per_person' ? 'per guest' : 'one-time fee'}`}
+                    </small>
+                  </span>
+                  <b>{poolAccessTotal > 0 ? php(poolAccessTotal) : 'FREE'}</b>
+                </label>
+              </section>
+            )}
 
             <section className="rv-section">
 
@@ -988,15 +1329,87 @@ const Reservation: React.FC = () => {
 
                 </div>
 
-                <div className="rv-field">
+                {rate.unit === 'night' && (
+                  <div className="rv-field">
 
-                  <label htmlFor="checkout">End date</label>
+                    <label htmlFor="checkout">End date</label>
 
-                  <input id="checkout" className="rv-date-input" type="date" min={checkIn} value={checkOut} onChange={e => setCheckOut(e.target.value)} required />
+                    <input id="checkout" className="rv-date-input" type="date" min={checkIn} value={checkOut} onChange={e => setCheckOut(e.target.value)} required />
 
-                </div>
+                  </div>
+                )}
 
                 <p className="rv-hint">Dates are used to estimate the booking duration. The resort owner must confirm actual availability.</p>
+
+                <div className="rv-owner-schedule-summary">
+                  <strong>Owner's booking availability</strong>
+                  <div className="rv-schedule-days-inline">
+                    {BOOKING_DAYS.map((day) => (
+                      <span className={bookingSchedule.availableDays.includes(day.value) ? 'is-available' : 'is-unavailable'} key={day.value}>
+                        {day.label.slice(0, 3)}
+                      </span>
+                    ))}
+                  </div>
+                  {!isSelectedDateAvailable && (
+                    <p className="rv-schedule-warning">This date is not included in the owner's available days. Please select another date.</p>
+                  )}
+                </div>
+
+                <div className="rv-field rv-session-field">
+                  <label>Choose your session</label>
+                  <div className="rv-session-choice-grid">
+                    {(['day', 'night'] as BookingSessionKey[]).map((session) => {
+                      const config = bookingSchedule.sessions[session];
+                      if (!config.enabled) return null;
+                      const selected = bookingSession === session;
+                      return (
+                        <button
+                          type="button"
+                          key={session}
+                          className={`rv-session-choice ${selected ? 'is-selected' : ''}`}
+                          aria-pressed={selected}
+                          onClick={() => setBookingSession(session)}
+                        >
+                          <span className="rv-session-choice-top">
+                            <strong>{session === 'day' ? 'Day session' : 'Night session'}</strong>
+                            <span>{selected ? 'Selected' : 'Choose'}</span>
+                          </span>
+                          <b>{formatScheduleTime(config.startTime)} – {formatScheduleTime(config.endTime)}</b>
+                          <small>{session === 'day' ? 'Daytime booking' : 'Evening booking'}</small>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {availableBookingSessions.length === 0 && (
+                    <p className="rv-schedule-warning">The owner has not enabled any booking session for this listing.</p>
+                  )}
+                </div>
+
+                {bookingSchedule.extension.enabled && (
+                  <div className="rv-extension-picker">
+                    <div>
+                      <strong>Need extra time?</strong>
+                      <small>{php(bookingSchedule.extension.feePerHour)} per additional hour · Up to {bookingSchedule.extension.maxHours} hours</small>
+                    </div>
+                    <div className="rv-extension-control">
+                      <label htmlFor="extension-hours">Extra hours</label>
+                      <select
+                        id="extension-hours"
+                        value={extensionHours}
+                        onChange={(event) => setExtensionHours(Number(event.target.value))}
+                      >
+                        {Array.from({ length: bookingSchedule.extension.maxHours + 1 }, (_, index) => (
+                          <option value={index} key={index}>{index === 0 ? 'No extension' : `${index} hour${index > 1 ? 's' : ''}`}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {extensionHours > 0 && (
+                      <p className="rv-extension-total">Extension fee: <strong>{php(extensionTotal)}</strong></p>
+                    )}
+                  </div>
+                )}
+
+
 
                 <div className="rv-steppers">
 
@@ -1056,6 +1469,8 @@ const Reservation: React.FC = () => {
 
                 </div>
 
+
+
                 {children > 0 && freeUnder > 0 && (
 
                   <div className="rv-field">
@@ -1079,6 +1494,8 @@ const Reservation: React.FC = () => {
               </div>
 
             </section>
+
+
 
             <section className="rv-section">
 
@@ -1111,6 +1528,8 @@ const Reservation: React.FC = () => {
                           : 1;
 
                       const serviceTotal = service.included ? 0 : service.price * multiplier;
+
+
 
                       return (
 
@@ -1236,6 +1655,8 @@ const Reservation: React.FC = () => {
 
             </section>
 
+
+
             <section className="rv-section">
 
               <div className="rv-section-heading"><h3><Mail size={19} /> Primary Guest</h3></div>
@@ -1278,6 +1699,8 @@ const Reservation: React.FC = () => {
 
             </section>
 
+
+
             <section className="rv-section">
 
               <div className="rv-section-heading"><h3><CreditCard size={19} /> Payment</h3></div>
@@ -1307,6 +1730,8 @@ const Reservation: React.FC = () => {
               </div>
 
             </section>
+
+
 
             <section className="rv-section">
 
@@ -1348,6 +1773,20 @@ const Reservation: React.FC = () => {
 
                 </div>
 
+                {resort.poolAccess?.enabled && (resort.poolAccess.included || includePoolAccess) && (
+                  <div className="rv-fare-row">
+                    <span>Pool access{resort.poolAccess.included ? ' (included)' : ''}</span>
+                    <strong>{poolAccessTotal > 0 ? php(poolAccessTotal) : 'FREE'}</strong>
+                  </div>
+                )}
+
+                {extensionHours > 0 && (
+                  <div className="rv-fare-row">
+                    <span>Session extension ({extensionHours} hour{extensionHours > 1 ? 's' : ''})</span>
+                    <strong>{php(extensionTotal)}</strong>
+                  </div>
+                )}
+
                 <hr />
 
                 <div className="rv-total">
@@ -1370,6 +1809,8 @@ const Reservation: React.FC = () => {
 
             </section>
 
+
+
             {error && <div className="rv-submit-error" role="alert">{error}</div>}
 
             <button className="rv-submit-button" type="submit" disabled={submitting || !userReady}>
@@ -1385,6 +1826,8 @@ const Reservation: React.FC = () => {
         </main>
 
       </IonContent>
+
+
 
       {successReference && (
 
@@ -1413,5 +1856,7 @@ const Reservation: React.FC = () => {
   );
 
 };
+
+
 
 export default Reservation;

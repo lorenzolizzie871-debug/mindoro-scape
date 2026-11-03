@@ -384,11 +384,8 @@ const MyBookings: React.FC = () => {
       where('userId', '==', user.uid)
     );
     const unsubscribe = onSnapshot(favoritesQuery, (snapshot) => {
-      const ids = snapshot.docs.map((item) => {
-        const data = item.data();
-        return String(data.accommodationId || data.offerId || data.bookingId || '');
-      }).filter(Boolean);
-      setFavoriteIds(ids);
+      // Store Firestore document IDs so checking/removing uses the exact same key.
+      setFavoriteIds(snapshot.docs.map((item) => item.id));
     }, (err) => {
       console.error('Unable to load favorites:', err);
     });
@@ -572,25 +569,34 @@ const MyBookings: React.FC = () => {
       'cancellation_request'
     );
   };
+  // Use one deterministic Firestore document ID for the same saved listing.
+  // resortId is the packages/{packageId} document ID in MINDORO SCAPE.
   const favoriteDocumentId = (booking: Booking) =>
-    `${user?.uid}_${booking.resortId || 'resort'}_${booking.accommodationId || booking.offerId || booking.id}`;
+    `${user?.uid}_${booking.resortId || booking.accommodationId || booking.offerId || booking.id}`;
+
   const toggleFavorite = async (booking: Booking) => {
-    if (!user) return;
+    if (!user) {
+      setNotice('Please sign in to manage your favorites.');
+      return;
+    }
+
     if (String(booking.status || '').toLowerCase() !== 'completed') {
       setNotice('You can save a booking to Favorites after it is completed.');
       return;
     }
+
     const favoriteId = favoriteDocumentId(booking);
     const favoriteRef = doc(db, 'userFavorites', favoriteId);
-    const isSaved = favoriteIds.includes(String(booking.accommodationId || booking.offerId || booking.id));
+    const isSaved = favoriteIds.includes(favoriteId);
+
     try {
       if (isSaved) {
         await deleteDoc(favoriteRef);
-        setFavoriteIds((current) => current.filter((id) => id !== String(booking.accommodationId || booking.offerId || booking.id)));
       } else {
         await setDoc(favoriteRef, {
           userId: user.uid,
           resortId: booking.resortId || '',
+          packageId: booking.resortId || '',
           resortName: booking.resortName || '',
           accommodationId: booking.accommodationId || booking.offerId || booking.id,
           offerId: booking.offerId || booking.accommodationId || booking.id,
@@ -599,8 +605,8 @@ const MyBookings: React.FC = () => {
           savedAt: serverTimestamp(),
           source: 'booking',
         });
-        setFavoriteIds((current) => [...current, String(booking.accommodationId || booking.offerId || booking.id)]);
       }
+      // favoriteIds is updated by the userFavorites onSnapshot listener.
     } catch (err) {
       console.error('Unable to update favorite:', err);
       alert('Unable to update Favorites. Please check Firestore rules.');
@@ -812,12 +818,12 @@ const MyBookings: React.FC = () => {
                       {String(booking.status || '').toLowerCase() === 'completed' && (
                         <button
                           type="button"
-                          className={`booking-action-secondary favorite-booking-button ${favoriteIds.includes(String(booking.accommodationId || booking.offerId || booking.id)) ? 'is-favorite' : ''}`}
+                          className={`booking-action-secondary favorite-booking-button ${favoriteIds.includes(favoriteDocumentId(booking)) ? 'is-favorite' : ''}`}
                           onClick={() => void toggleFavorite(booking)}
                           aria-label="Save this completed accommodation to favorites"
                         >
-                          <IonIcon icon={favoriteIds.includes(String(booking.accommodationId || booking.offerId || booking.id)) ? heart : heartOutline} />
-                          {favoriteIds.includes(String(booking.accommodationId || booking.offerId || booking.id)) ? 'Saved' : 'Add to Favorites'}
+                          <IonIcon icon={favoriteIds.includes(favoriteDocumentId(booking)) ? heart : heartOutline} />
+                          {favoriteIds.includes(favoriteDocumentId(booking)) ? 'Saved' : 'Add to Favorites'}
                         </button>
                       )}
                       {String(booking.status || '').toLowerCase() === 'completed' && (

@@ -448,15 +448,22 @@
   cursor: pointer;
 }
 
-.explore-map-marker-price {
+.explore-map-marker-name {
+  display: block;
+  width: max-content;
+  max-width: 190px;
   margin-bottom: 3px;
-  padding: 5px 8px;
-  border: 1px solid rgba(7, 81, 107, 0.12);
-  border-radius: 7px;
+  padding: 6px 9px;
+  overflow: hidden;
+  border: 1px solid rgba(7, 81, 107, 0.16);
+  border-radius: 8px;
   background: #fff;
   color: var(--explore-primary-dark);
   font-size: 10px;
   font-weight: 850;
+  line-height: 1.25;
+  text-align: center;
+  text-overflow: ellipsis;
   white-space: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -849,6 +856,12 @@
 
 /* MOBILE */
 @media (max-width: 600px) {
+  .explore-map-marker-name {
+    max-width: 145px;
+    padding: 5px 7px;
+    font-size: 9px;
+  }
+
   .explore-shell {
     padding: 0 14px 105px;
   }

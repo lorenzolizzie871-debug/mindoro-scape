@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { IonContent, IonIcon, IonPage } from '@ionic/react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/react';
 import {
   locationOutline,
   notificationsOutline,
@@ -9,57 +9,197 @@ import {
   shareSocialOutline,
   star,
   calendarOutline,
-  eyeOutline,
   peopleOutline,
   checkmarkCircle,
   heartDislike,
   informationCircle,
-  copy
+  copy,
+  alertCircleOutline,
 } from 'ionicons/icons';
 import { useNavigate } from 'react-router-dom';
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  onSnapshot,
+  query,
+  where,
+  writeBatch,
+} from 'firebase/firestore';
+import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import BottomTabs from '../components/BottomTabs';
 import './Favorites.css';
 
-// --- MOCK DATA ---
-const INITIAL_FAVORITES = [
-  {
-    id: 1,
-    name: 'Infinity Resort & Spa',
-    location: 'Talipanan, Puerto Galera',
-    price: 7800,
-    rating: 4.9,
-    reviews: 128,
-    tag: 'Beachfront • Luxury',
-    locationGroup: 'puerto-galera',
-    tagGroup: 'pool',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBTEh6GYQ2IciyOQgMNsvZpxBaUEP9CutWsk4go5ZGABvH1mqmiZk0K4CoQhmAs_dCouk7-DRQ35Ro-bfrdccyd61GXuFZPgv83_i3bRFw95XSG8La7GrbkLKaCyLKdty04sqveIjoqzfpw-G5R_opslkTkQuE4PrncpiH5wYADIqlFIkMPVJwFSUkLObEm_jM4_Z6GycD56UJDKYPCOcWDp9rUJFl-1fLFUZCm7CDMe7OJv_13veVA'
-  },
-  {
-    id: 2,
-    name: 'Southdrive Beach Resort',
-    location: 'San Jose, Bulalacao',
-    price: 3800,
-    rating: 4.8,
-    reviews: 88,
-    tag: 'Island Hopping',
-    locationGroup: 'bulalacao',
-    tagGroup: 'island',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDMtNc0mcx8vXsBXVhN5NSM7mbGpej-de-rlFivCHkkhXyLGh_7aSWqqhz31qdGQ8Ybj0Lt4NimHLYXxl2birEytiObJqEdf2VM7P7091R_dQor0FwJaGYqeL_q42IHi7wThoXHywCoe8BdtsaJ_tNKH3RA_fD22xoxc1cjfUCNpDhaRHyHqFR6qtcJALI3qYXS1NDBPtt72yo88UvT_Wf3JavXyVOq4ERM93zkngrM4eJAvxo1anoU'
-  },
-  {
-    id: 3,
-    name: 'Fridays Puerto Galera',
-    location: 'Boquete Island, Puerto Galera',
-    price: 8500,
-    rating: 4.9,
-    reviews: 214,
-    tag: 'Dive Center',
-    locationGroup: 'puerto-galera',
-    tagGroup: 'dive',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDV0VDuel-ggFjf-MVhmspg4vUljlvz1p_7YRn4zvheD38zurla4lVnsviPxHzIlHAoh2i5M43D2ihvsJffdiTGdixvrvxReUln_Z9NXkhi84FAFvgmz1Nv4DI3uUZlQ6HtndK5NtWkCM98ppg3groMYOVQL0OQtccyEfRVOeJnAW5BR9Vov8g0bX-EG4DllT26KHLQSIRTxA31jpsx_KjvmauUPtwmuinF_xPKkx_Gf463kWfCr463'
+type FavoriteRecord = {
+  id: string;
+  userId?: string;
+  resortId?: string;
+  packageId?: string;
+  accommodationId?: string;
+  offerId?: string;
+  bookingId?: string;
+  resortName?: string;
+  accommodationName?: string;
+  resortLocation?: string;
+  location?: string;
+  savedAt?: unknown;
+  source?: string;
+  [key: string]: unknown;
+};
+
+type FavoriteCard = {
+  id: string;
+  favoriteDocId: string;
+  resortId: string;
+  name: string;
+  location: string;
+  municipality: string;
+  price: number | null;
+  rating: number | null;
+  reviews: number | null;
+  tag: string;
+  image: string;
+  amenities: string[];
+  raw: Record<string, unknown>;
+};
+
+const asText = (...values: unknown[]): string => {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
   }
-];
+  return '';
+};
+
+const asNumber = (...values: unknown[]): number | null => {
+  for (const value of values) {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) {
+      return Number(value);
+    }
+  }
+  return null;
+};
+
+const getFirstImage = (data: Record<string, unknown>): string => {
+  const direct = asText(
+    data.imageUrl,
+    data.coverImage,
+    data.thumbnailUrl,
+    data.photoURL,
+    data.photoUrl,
+    data.image,
+  );
+  if (direct) return direct;
+
+  const imageUrls = data.imageUrls;
+  if (Array.isArray(imageUrls)) {
+    const first = imageUrls.find((item) => typeof item === 'string' && item.trim());
+    if (typeof first === 'string') return first;
+  }
+
+  const images = data.images;
+  if (Array.isArray(images)) {
+    const first = images.find((item) => typeof item === 'string' && item.trim());
+    if (typeof first === 'string') return first;
+    const firstObject = images.find((item) => item && typeof item === 'object') as Record<string, unknown> | undefined;
+    if (firstObject) return asText(firstObject.url, firstObject.imageUrl, firstObject.src);
+  }
+
+  return '';
+};
+
+const getPrice = (data: Record<string, unknown>): number | null => {
+  const direct = asNumber(data.price, data.minimumPrice, data.startingPrice, data.pricePerNight);
+  if (direct !== null) return direct;
+
+  const pricingOptions = data.pricingOptions;
+  if (Array.isArray(pricingOptions)) {
+    const prices = pricingOptions
+      .map((option) => {
+        if (typeof option === 'number' || typeof option === 'string') return asNumber(option);
+        if (option && typeof option === 'object') {
+          const item = option as Record<string, unknown>;
+          return asNumber(item.price, item.amount, item.rate, item.pricePerNight);
+        }
+        return null;
+      })
+      .filter((value): value is number => value !== null && value >= 0);
+    if (prices.length) return Math.min(...prices);
+  }
+
+  return null;
+};
+
+const getAmenities = (data: Record<string, unknown>): string[] => {
+  const value = data.amenities;
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object') {
+        const record = item as Record<string, unknown>;
+        return asText(record.name, record.label, record.title);
+      }
+      return '';
+    })
+    .filter(Boolean)
+    .slice(0, 4);
+};
+
+const normalizeFavorite = (
+  favorite: FavoriteRecord,
+  packageData: Record<string, unknown> | null,
+): FavoriteCard => {
+  const packageRecord = packageData || {};
+  const municipality = asText(
+    packageRecord.resortLocation,
+    packageRecord.municipality,
+    packageRecord.city,
+    favorite.resortLocation,
+  );
+  const location = asText(
+    packageRecord.locationLabel,
+    packageRecord.location,
+    packageRecord.address,
+    favorite.location,
+    municipality,
+    packageRecord.barangay,
+  );
+  const resortName = asText(
+    packageRecord.resortName,
+    packageRecord.name,
+    packageRecord.title,
+    packageRecord.packageName,
+    favorite.resortName,
+    favorite.accommodationName,
+  ) || 'Unnamed resort';
+
+  const accommodationName = asText(favorite.accommodationName);
+  const price = getPrice(packageRecord) ?? getPrice(favorite);
+  const rating = asNumber(packageRecord.averageRating, packageRecord.rating, favorite.averageRating, favorite.rating);
+  const reviews = asNumber(packageRecord.reviewCount, packageRecord.reviewsCount, favorite.reviewCount);
+  const amenities = getAmenities(packageRecord).length ? getAmenities(packageRecord) : getAmenities(favorite);
+
+  return {
+    id: favorite.resortId || favorite.packageId || favorite.accommodationId || favorite.id,
+    favoriteDocId: favorite.id,
+    resortId: favorite.resortId || favorite.packageId || '',
+    name: accommodationName ? `${resortName} — ${accommodationName}` : resortName,
+    location,
+    municipality,
+    price,
+    rating,
+    reviews,
+    tag: asText(packageRecord.category, packageRecord.type, packageRecord.tag, favorite.source) || 'Resort',
+    image: getFirstImage(packageRecord) || getFirstImage(favorite),
+    amenities,
+    // Keep the resolved package document as the raw resort data.
+    // `data` is not defined in this function; using it caused the runtime ReferenceError.
+    raw: packageRecord,
+  };
+};
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('en-PH', {
@@ -71,10 +211,14 @@ const formatPrice = (price: number) =>
 const Favorites: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
-  const [favorites, setFavorites] = useState(INITIAL_FAVORITES);
+
+  const [favorites, setFavorites] = useState<FavoriteCard[]>([]);
+  const [favoriteRecords, setFavoriteRecords] = useState<FavoriteRecord[]>([]);
   const [activeFilter, setActiveFilter] = useState('all');
-  const [isPreviewEmpty, setIsPreviewEmpty] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
+  const [error, setError] = useState('');
   const [toast, setToast] = useState<{ show: boolean; message: string; icon: string }>({
     show: false,
     message: '',
@@ -83,226 +227,417 @@ const Favorites: React.FC = () => {
 
   const showToast = (message: string, icon: string = checkmarkCircle) => {
     setToast({ show: true, message, icon });
-    setTimeout(() => setToast((prev) => ({ ...prev, show: false })), 2600);
+    window.setTimeout(() => setToast((previous) => ({ ...previous, show: false })), 2600);
   };
 
-  const handleRemove = (id: number, name: string) => {
-    setFavorites((prev) => prev.filter((f) => f.id !== id));
-    showToast(`${name} removed from favorites`, heartDislike);
-  };
-
-  const handleClearAll = () => {
-    if (favorites.length === 0) {
-      showToast('Wishlist is already empty', informationCircle);
+  useEffect(() => {
+    if (!user?.uid) {
+      setFavorites([]);
+      setFavoriteRecords([]);
+      setLoading(false);
+      setError('');
       return;
     }
-    setFavorites([]);
-    showToast('All saved escapes cleared', trashOutline);
-  };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'Mindoro Scape Wishlist',
-        text: 'Take a look at my saved tropical retreats in Oriental Mindoro!',
-        url: window.location.href,
-      }).catch(() => {});
-    } else {
-      showToast('Wishlist link copied to clipboard', copy);
+    setLoading(true);
+    setError('');
+
+    const favoritesQuery = query(
+      collection(db, 'userFavorites'),
+      where('userId', '==', user.uid),
+    );
+
+    let active = true;
+    const unsubscribe = onSnapshot(
+      favoritesQuery,
+      async (snapshot) => {
+        const records: FavoriteRecord[] = snapshot.docs.map((item) => ({
+          id: item.id,
+          ...(item.data() as Omit<FavoriteRecord, 'id'>),
+        }));
+        setFavoriteRecords(records);
+
+        try {
+          const cards = await Promise.all(
+            records.map(async (favorite) => {
+              const packageId = favorite.resortId || favorite.packageId;
+              if (!packageId) return normalizeFavorite(favorite, null);
+
+              try {
+                const packageSnapshot = await getDoc(doc(db, 'packages', packageId));
+                const packageData = packageSnapshot.exists()
+                  ? (packageSnapshot.data() as Record<string, unknown>)
+                  : null;
+                return normalizeFavorite(favorite, packageData);
+              } catch (packageError) {
+                console.warn(`Unable to load package ${packageId}:`, packageError);
+                return normalizeFavorite(favorite, null);
+              }
+            }),
+          );
+
+          if (!active) return;
+          cards.sort((a, b) => {
+            const aRecord = records.find((record) => record.id === a.favoriteDocId);
+            const bRecord = records.find((record) => record.id === b.favoriteDocId);
+            const aTime = (aRecord?.savedAt as { toMillis?: () => number } | undefined)?.toMillis?.() || 0;
+            const bTime = (bRecord?.savedAt as { toMillis?: () => number } | undefined)?.toMillis?.() || 0;
+            return bTime - aTime;
+          });
+          setFavorites(cards);
+          setError('');
+          setLoading(false);
+        } catch (loadError) {
+          console.error('Unable to load favorite package details:', loadError);
+          if (!active) return;
+          setError('Some saved resort details could not be loaded. Please try again.');
+          setLoading(false);
+        }
+      },
+      (snapshotError) => {
+        console.error('Unable to load favorites:', snapshotError);
+        if (!active) return;
+        setError('Unable to load your favorites. Please check your connection and Firestore rules.');
+        setLoading(false);
+      },
+    );
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [user?.uid]);
+
+  const locationFilters = useMemo(() => {
+    const locations = new Map<string, string>();
+    favorites.forEach((item) => {
+      const label = item.municipality || item.location.split(',').map((part) => part.trim()).filter(Boolean).slice(-1)[0];
+      if (label) {
+        const key = label.toLowerCase();
+        if (!locations.has(key)) locations.set(key, label);
+      }
+    });
+    return Array.from(locations.entries()).map(([id, label]) => ({ id, label }));
+  }, [favorites]);
+
+  const filteredFavorites = useMemo(() => {
+    if (activeFilter === 'all') return favorites;
+    return favorites.filter((item) => {
+      const municipality = item.municipality || item.location.split(',').map((part) => part.trim()).filter(Boolean).slice(-1)[0];
+      return municipality?.toLowerCase() === activeFilter;
+    });
+  }, [favorites, activeFilter]);
+
+  useEffect(() => {
+    if (activeFilter !== 'all' && !locationFilters.some((filter) => filter.id === activeFilter)) {
+      setActiveFilter('all');
+    }
+  }, [activeFilter, locationFilters]);
+
+  const handleRemove = async (item: FavoriteCard) => {
+    if (!user?.uid || removingId) return;
+    setRemovingId(item.favoriteDocId);
+    try {
+      await deleteDoc(doc(db, 'userFavorites', item.favoriteDocId));
+      showToast(`${item.name} removed from favorites`, heartDislike);
+      // The onSnapshot listener updates the UI after Firestore confirms deletion.
+    } catch (removeError) {
+      console.error('Unable to remove favorite:', removeError);
+      showToast('Unable to remove this favorite. Please try again.', alertCircleOutline);
+    } finally {
+      setRemovingId(null);
     }
   };
 
-  const filteredFavorites = favorites.filter((item) => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'puerto-galera') return item.locationGroup === 'puerto-galera';
-    if (activeFilter === 'bulalacao') return item.locationGroup === 'bulalacao';
-    if (activeFilter === 'pool') return item.tagGroup === 'pool';
-    return true;
-  });
+  const handleClearAll = async () => {
+    if (!user?.uid || clearing || favoriteRecords.length === 0) {
+      if (favoriteRecords.length === 0) showToast('Your wishlist is already empty', informationCircle);
+      return;
+    }
 
-  const showEmptyState = isPreviewEmpty || favorites.length === 0;
+    setClearing(true);
+    try {
+      // Firestore batches support up to 500 writes per batch.
+      for (let index = 0; index < favoriteRecords.length; index += 450) {
+        const batch = writeBatch(db);
+        favoriteRecords.slice(index, index + 450).forEach((favorite) => {
+          batch.delete(doc(db, 'userFavorites', favorite.id));
+        });
+        await batch.commit();
+      }
+      showToast('All saved resorts removed', trashOutline);
+    } catch (clearError) {
+      console.error('Unable to clear favorites:', clearError);
+      showToast('Unable to clear favorites. Please try again.', alertCircleOutline);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareText = favorites.length
+      ? `My saved resorts in Oriental Mindoro:\n${favorites.map((item) => `${item.name}${item.location ? ` — ${item.location}` : ''}`).join('\n')}`
+      : 'Take a look at my saved resorts in Oriental Mindoro!';
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Mindoro Scape Favorites',
+          text: shareText,
+          url: window.location.href,
+        });
+      } catch {
+        // The user may close the native share sheet; no error toast is needed.
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${shareText}\n${window.location.href}`);
+      showToast('Wishlist details copied to clipboard', copy);
+    } catch {
+      showToast('Sharing is not available in this browser', alertCircleOutline);
+    }
+  };
+
+  const showEmptyState = !loading && !error && favorites.length === 0;
 
   return (
     <IonPage>
       <IonContent className="favorites-content">
         <div className="favorites-shell">
-          
-          {/* HEADER */}
           <header className="fav-header">
             <button className="fav-brand" onClick={() => navigate('/user/dashboard')}>
               <img
                 alt="Mindoro Scape"
                 src="/assets/mindoro-scape-logo.png"
-                onError={(e) => (e.currentTarget.style.display = 'none')}
+                onError={(event) => { event.currentTarget.style.display = 'none'; }}
               />
               <div className="fav-brand-copy">
                 <strong>Mindoro Scape</strong>
                 <small>
-                  <IonIcon icon={locationOutline} className="text-[12px]" />
+                  <IonIcon icon={locationOutline} />
                   ORIENTAL MINDORO
                 </small>
               </div>
             </button>
 
             <div className="fav-header-actions">
-              <button className="fav-icon-button" onClick={() => navigate('/user/dashboard')}>
-                <IonIcon icon={notificationsOutline} className="text-[22px]" />
-                <span className="fav-notification-dot"></span>
+              <button className="fav-icon-button" onClick={() => navigate('/user/dashboard')} aria-label="Notifications">
+                <IonIcon icon={notificationsOutline} />
+                <span className="fav-notification-dot" />
               </button>
-              <button className="fav-profile-button" onClick={() => navigate('/user/profile')}>
+              <button className="fav-profile-button" onClick={() => navigate('/user/profile')} aria-label="Open profile">
                 {user?.photoURL ? (
                   <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <IonIcon icon={personOutline} className="text-[20px]" />
+                  <IonIcon icon={personOutline} />
                 )}
               </button>
             </div>
           </header>
 
-          {/* MAIN CONTENT */}
           <main className="fav-main">
-            
             <div className="fav-title-row">
               <div>
-                <p className="fav-eyebrow">CURATED COLLECTION</p>
-                <h1>Saved Escapes</h1>
+                <p className="fav-eyebrow">YOUR COLLECTION</p>
+                <h1>Saved Resorts</h1>
                 <p className="fav-subtitle">
-                  {favorites.length === 0 ? 'No sanctuaries saved yet' : `${favorites.length} ${favorites.length === 1 ? 'sanctuary' : 'sanctuaries'} saved for your next trip`}
+                  {loading
+                    ? 'Loading your saved resorts...'
+                    : `${favorites.length} ${favorites.length === 1 ? 'resort' : 'resorts'} saved to your wishlist`}
                 </p>
               </div>
-              <button onClick={handleClearAll} className="btn-clear">
-                <IonIcon icon={trashOutline} className="text-[14px]" />
-                <span>Clear</span>
+              <button
+                onClick={() => void handleClearAll()}
+                className="btn-clear"
+                disabled={loading || clearing || favorites.length === 0}
+              >
+                <IonIcon icon={trashOutline} />
+                <span>{clearing ? 'Clearing...' : 'Clear all'}</span>
               </button>
             </div>
 
-            {/* FILTER CHIPS */}
-            <div className="fav-filters">
-              {[
-                { id: 'all', label: `All Saved (${favorites.length})` },
-                { id: 'puerto-galera', label: 'Puerto Galera (2)' },
-                { id: 'bulalacao', label: 'Bulalacao (1)' },
-                { id: 'pool', label: 'Private Pool (1)' },
-              ].map((chip) => (
+            {locationFilters.length > 0 && (
+              <div className="fav-filters">
                 <button
-                  key={chip.id}
-                  onClick={() => setActiveFilter(chip.id)}
-                  className={`chip ${activeFilter === chip.id ? 'is-active' : ''}`}
+                  className={`chip ${activeFilter === 'all' ? 'is-active' : ''}`}
+                  onClick={() => setActiveFilter('all')}
                 >
-                  {chip.label}
+                  All Saved ({favorites.length})
                 </button>
-              ))}
-            </div>
+                {locationFilters.map((filter) => {
+                  const count = favorites.filter((item) => {
+                    const municipality = item.municipality || item.location.split(',').map((part) => part.trim()).filter(Boolean).slice(-1)[0];
+                    return municipality?.toLowerCase() === filter.id;
+                  }).length;
+                  return (
+                    <button
+                      key={filter.id}
+                      className={`chip ${activeFilter === filter.id ? 'is-active' : ''}`}
+                      onClick={() => setActiveFilter(filter.id)}
+                    >
+                      {filter.label} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-            {/* SHARE BANNER */}
             <div className="share-banner">
-              <div className="flex items-center gap-3">
+              <div className="share-banner-copy">
                 <div className="share-icon-wrap">
-                  <IonIcon icon={peopleOutline} className="text-[20px]" />
+                  <IonIcon icon={peopleOutline} />
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="share-title">Traveling with friends?</span>
-                  <span className="share-desc">Share your curated wishlist</span>
+                <div className="share-text-wrap">
+                  <span className="share-title">Planning a trip with friends?</span>
+                  <span className="share-desc">Share your saved resorts with them</span>
                 </div>
               </div>
-              <button onClick={handleShare} className="btn-share">
-                <IonIcon icon={shareSocialOutline} className="text-[14px]" />
+              <button onClick={() => void handleShare()} className="btn-share" disabled={favorites.length === 0}>
+                <IonIcon icon={shareSocialOutline} />
                 <span>Share</span>
               </button>
             </div>
 
-            {/* CARDS CONTAINER */}
-            <div className={`fav-cards-container ${showEmptyState ? 'hidden' : ''}`}>
-              {filteredFavorites.map((item) => (
-                <div key={item.id} className="resort-card">
-                  <div className="card-image-wrap">
-                    <img src={item.image} alt={item.name} />
-                    <div className="card-gradient"></div>
-                    
-                    <div className="card-badge">
-                      <IonIcon icon={star} className="text-[#006685] text-[12px]" />
-                      <span>{item.tag}</span>
+            {loading && (
+              <div className="fav-state">
+                <IonSpinner name="crescent" />
+                <span>Loading your favorites...</span>
+              </div>
+            )}
+
+            {!loading && error && (
+              <div className="fav-state fav-error-state">
+                <IonIcon icon={alertCircleOutline} />
+                <h3>Unable to load favorites</h3>
+                <p>{error}</p>
+              </div>
+            )}
+
+            {!loading && !error && filteredFavorites.length > 0 && (
+              <div className="fav-cards-container">
+                {filteredFavorites.map((item) => (
+                  <article key={item.favoriteDocId} className="resort-card">
+                    <div className="card-image-wrap">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} loading="lazy" />
+                      ) : (
+                        <div className="fav-image-placeholder">
+                          <IonIcon icon={locationOutline} />
+                          <span>Resort image unavailable</span>
+                        </div>
+                      )}
+                      <div className="card-gradient" />
+                      <div className="card-badge">
+                        <IonIcon icon={star} />
+                        <span>{item.tag}</span>
+                      </div>
+                      <button
+                        onClick={() => void handleRemove(item)}
+                        className="btn-heart"
+                        disabled={removingId === item.favoriteDocId}
+                        aria-label={`Remove ${item.name} from favorites`}
+                      >
+                        <IonIcon icon={heart} />
+                      </button>
+                      {item.location && (
+                        <div className="card-location">
+                          <IonIcon icon={locationOutline} />
+                          <span>{item.location}</span>
+                        </div>
+                      )}
                     </div>
 
-                    <button onClick={() => handleRemove(item.id, item.name)} className="btn-heart">
-                      <IonIcon icon={heart} className="text-[20px]" />
-                    </button>
+                    <div className="card-details">
+                      <div className="card-title-row">
+                        <h2 className="card-title">{item.name}</h2>
+                        {(item.rating !== null || item.reviews !== null) && (
+                          <div className="card-rating">
+                            <IonIcon icon={star} />
+                            {item.rating !== null && <span className="score">{item.rating.toFixed(1)}</span>}
+                            {item.reviews !== null && <span className="count">({item.reviews})</span>}
+                          </div>
+                        )}
+                      </div>
 
-                    <div className="card-location">
-                      <IonIcon icon={locationOutline} className="text-[14px]" />
-                      <span>{item.location}</span>
-                    </div>
-                  </div>
+                      {item.amenities.length > 0 && (
+                        <div className="fav-amenities">
+                          {item.amenities.map((amenity, index) => <span key={`${amenity}-${index}`}>{amenity}</span>)}
+                        </div>
+                      )}
 
-                  <div className="card-details">
-                    <div className="card-title-row">
-                      <h2 className="card-title">{item.name}</h2>
-                      <div className="card-rating">
-                        <IonIcon icon={star} className="text-[12px] text-[#e89b19]" />
-                        <span className="score">{item.rating}</span>
-                        <span className="count">({item.reviews})</span>
+                      <div className="card-price-row">
+                        {item.price !== null ? (
+                          <>
+                            <span className="card-price">{formatPrice(item.price)}</span>
+                            <span className="card-price-suffix">starting price</span>
+                          </>
+                        ) : (
+                          <span className="fav-price-unavailable">Price not provided</span>
+                        )}
+                      </div>
+
+                      <div className="card-actions">
+                        <button
+                          onClick={() => item.resortId && navigate(`/user/resort/${item.resortId}`)}
+                          className="btn-availability"
+                          disabled={!item.resortId}
+                        >
+                          <span>View Resort</span>
+                          <IonIcon icon={calendarOutline} />
+                        </button>
+                        <button onClick={() => void handleShare()} className="btn-share-card" aria-label="Share wishlist">
+                          <IonIcon icon={shareSocialOutline} />
+                        </button>
                       </div>
                     </div>
-                    
-                    <div className="card-price-row">
-                      <span className="card-price">{formatPrice(item.price)}</span>
-                      <span className="card-price-suffix">/ night</span>
-                    </div>
-
-                    <div className="card-actions">
-                      <button onClick={() => navigate(`/user/resort/${item.id}`)} className="btn-availability">
-                        <span>Check Availability</span>
-                        <IonIcon icon={calendarOutline} className="text-[18px]" />
-                      </button>
-                      <button onClick={handleShare} className="btn-share-card">
-                        <IonIcon icon={shareSocialOutline} className="text-[20px]" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* EMPTY STATE */}
-            <div className={`empty-state ${showEmptyState ? 'is-visible' : ''}`}>
-              <div className="empty-icon-wrap">
-                <IonIcon icon={heart} className="text-[32px]" />
+                  </article>
+                ))}
               </div>
-              <h3 className="empty-title">No saved retreats yet</h3>
-              <p className="empty-desc">
-                Tap the heart icon on any resort, cove, or villa to keep your dream Mindoro trip organized in one sanctuary.
-              </p>
-              <button onClick={() => navigate('/user/explore')} className="btn-discover">
-                <IonIcon icon={locationOutline} className="text-[18px]" />
-                <span>Discover Stays</span>
-              </button>
-            </div>
+            )}
 
-            {/* PREVIEW TOGGLE */}
-            <div className="preview-toggle-wrap">
-              <button onClick={() => setIsPreviewEmpty(!isPreviewEmpty)} className="preview-toggle-btn">
-                <IonIcon icon={eyeOutline} className="text-[14px]" />
-                <span>{isPreviewEmpty ? 'Restore saved resorts view' : 'Preview empty state view'}</span>
-              </button>
-              <p className="preview-footer-text">
-                Curated exclusively for tropical voyagers in Oriental Mindoro.
-              </p>
-            </div>
+            {showEmptyState && (
+              <div className="empty-state is-visible">
+                <div className="empty-icon-wrap">
+                  <IonIcon icon={heart} />
+                </div>
+                <h3 className="empty-title">No saved resorts yet</h3>
+                <p className="empty-desc">
+                  Save resorts from Explore or from your completed bookings. They will appear here automatically.
+                </p>
+                <button onClick={() => navigate('/user/explore')} className="btn-discover">
+                  <IonIcon icon={locationOutline} />
+                  <span>Explore Resorts</span>
+                </button>
+              </div>
+            )}
 
+            {!loading && !error && favorites.length > 0 && filteredFavorites.length === 0 && (
+              <div className="fav-state">
+                <IonIcon icon={informationCircle} />
+                <span>No saved resorts in this location.</span>
+                <button onClick={() => setActiveFilter('all')}>Show all saved resorts</button>
+              </div>
+            )}
+
+            {!user && (
+              <div className="fav-state">
+                <IonIcon icon={informationCircle} />
+                <span>Please sign in to view your saved resorts.</span>
+                <button onClick={() => navigate('/login')}>Sign in</button>
+              </div>
+            )}
           </main>
         </div>
 
-        {/* TOAST NOTIFICATION */}
         <div className={`toast-container ${toast.show ? 'is-visible' : ''}`}>
           <div className="toast-content">
-            <IonIcon icon={toast.icon as any} className="text-[18px] text-[#33c9ff]" />
+            <IonIcon icon={toast.icon as any} />
             <span className="toast-message">{toast.message}</span>
           </div>
         </div>
-
       </IonContent>
-      
-      {/* BottomTabs */}
       <BottomTabs />
     </IonPage>
   );

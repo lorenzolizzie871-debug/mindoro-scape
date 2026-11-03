@@ -17,11 +17,10 @@ import {
   addOutline,
   removeOutline,
   businessOutline,
-  star,
   notificationsOutline,
   personOutline,
 } from 'ionicons/icons';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
 
@@ -118,7 +117,15 @@ const normalizeListing = (
 
   return {
     id,
-    resortName: textValue(data.resortName ?? data.name, 'Resort'),
+    resortName: textValue(
+      data.resortName ??
+        data.resort_name ??
+        data.resortTitle ??
+        data.businessName ??
+        data.propertyName ??
+        data.name,
+      'Resort',
+    ),
     accommodationName: textValue(data.name, 'Accommodation'),
     municipality: textValue(
       data.resortLocation ?? data.municipality ?? data.city,
@@ -171,6 +178,38 @@ const Explore: React.FC = () => {
   const [imageErrors, setImageErrors] = useState<string[]>([]);
 
   const user = auth.currentUser;
+
+  // Keep the Explore heart buttons synchronized with the signed-in user's Firestore favorites.
+  useEffect(() => {
+    if (!user?.uid) {
+      setFavorites([]);
+      return;
+    }
+
+    const favoritesQuery = query(
+      collection(db, 'userFavorites'),
+      where('userId', '==', user.uid),
+    );
+
+    const unsubscribe = onSnapshot(
+      favoritesQuery,
+      (snapshot) => {
+        const savedPackageIds = snapshot.docs
+          .map((item) => {
+            const data = item.data();
+            return String(data.resortId || data.packageId || '');
+          })
+          .filter(Boolean);
+
+        setFavorites(Array.from(new Set(savedPackageIds)));
+      },
+      (error) => {
+        console.error('Unable to load user favorites:', error);
+      },
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   // Load published, available resort packages from Firestore.
   useEffect(() => {
@@ -315,12 +354,16 @@ const Explore: React.FC = () => {
         'aria-label',
         `View ${listing.resortName}`,
       );
-      markerElement.innerHTML = `
-        <span class="explore-map-marker-price">
-          ${listing.price > 0 ? formatPrice(listing.price) : 'View'}
-        </span>
-        <span class="explore-map-marker-pin"></span>
-      `;
+      const markerName = document.createElement('span');
+      markerName.className = 'explore-map-marker-name';
+      markerName.textContent = listing.resortName || 'Resort';
+      markerName.title = listing.resortName || 'Resort';
+
+      const markerPin = document.createElement('span');
+      markerPin.className = 'explore-map-marker-pin';
+      markerPin.setAttribute('aria-hidden', 'true');
+
+      markerElement.append(markerName, markerPin);
 
       markerElement.addEventListener('click', (event) => {
         event.stopPropagation();
@@ -366,12 +409,43 @@ const Explore: React.FC = () => {
     }
   }, [mapReady]);
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((current) =>
-      current.includes(id)
-        ? current.filter((item) => item !== id)
-        : [...current, id],
-    );
+  const toggleFavorite = async (listing: ResortListing) => {
+    if (!user?.uid) {
+      window.alert('Please sign in to save resorts to your Favorites.');
+      navigate('/login');
+      return;
+    }
+
+    const favoriteId = `${user.uid}_${listing.id}`;
+    const favoriteRef = doc(db, 'userFavorites', favoriteId);
+    const isSaved = favorites.includes(listing.id);
+
+    try {
+      if (isSaved) {
+        await deleteDoc(favoriteRef);
+      } else {
+        await setDoc(favoriteRef, {
+          userId: user.uid,
+          resortId: listing.id,
+          packageId: listing.id,
+          resortName: listing.resortName,
+          accommodationName: listing.accommodationName,
+          resortLocation: listing.municipality,
+          location: listing.location,
+          imageUrl: listing.imageUrl,
+          price: listing.price,
+          category: listing.category,
+          amenities: listing.amenities,
+          ownerId: listing.ownerId,
+          savedAt: serverTimestamp(),
+          source: 'explore',
+        });
+      }
+      // The onSnapshot listener updates the heart state after Firestore confirms the change.
+    } catch (error) {
+      console.error('Unable to update resort favorite:', error);
+      window.alert('Unable to update Favorites. Please check your connection and Firestore rules.');
+    }
   };
 
   const openDetails = (listing: ResortListing) => {
@@ -701,7 +775,7 @@ const Explore: React.FC = () => {
                       className={`explore-card-favorite ${
                         favorites.includes(listing.id) ? 'is-favorite' : ''
                       }`}
-                      onClick={() => toggleFavorite(listing.id)}
+                      onClick={() => void toggleFavorite(listing)}
                       aria-label="Toggle favorite"
                     >
                       <IonIcon

@@ -637,3 +637,162 @@
   max-width: 260px;
   line-height: 1.5;
 }
+
+/* FIRESTORE STATES */
+.btn-clear:disabled,
+.btn-share:disabled,
+.btn-heart:disabled,
+.btn-availability:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fav-state {
+  min-height: 190px;
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #e1eaf2;
+  border-radius: 17px;
+  background: #ffffff;
+  color: #607784;
+  text-align: center;
+  font-size: 13px;
+}
+
+.fav-state > ion-spinner {
+  color: #087b91;
+  width: 30px;
+  height: 30px;
+}
+
+.fav-state > ion-icon {
+  color: #087b91;
+  font-size: 30px;
+}
+
+.fav-state h3,
+.fav-state p {
+  margin: 0;
+}
+
+.fav-state h3 {
+  color: #073b53;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.fav-state p {
+  max-width: 420px;
+  line-height: 1.6;
+}
+
+.fav-state button {
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 14px;
+  background: #073b53;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fav-error-state {
+  border-color: #f0d3ce;
+  background: #fffafa;
+  color: #a13c30;
+}
+
+.fav-error-state > ion-icon {
+  color: #c45143;
+}
+
+.fav-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #eaf3f5;
+  color: #78909e;
+  font-size: 11px;
+}
+
+.fav-image-placeholder ion-icon {
+  font-size: 30px;
+}
+
+.share-banner-copy,
+.share-text-wrap {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.share-text-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.fav-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.fav-amenities span {
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #f0f6f8;
+  color: #557383;
+  font-size: 10px;
+}
+
+.fav-price-unavailable {
+  color: #7a8b95;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .fav-main {
+    padding: 20px 14px 0;
+  }
+
+  .share-banner {
+    padding: 13px;
+  }
+
+  .share-banner-copy {
+    gap: 9px;
+  }
+
+  .share-title {
+    font-size: 12px;
+  }
+
+  .share-desc {
+    max-width: 190px;
+    font-size: 10px;
+  }
+
+  .btn-share {
+    padding: 0 11px;
+    font-size: 10px;
+  }
+
+  .fav-state {
+    min-height: 170px;
+    padding: 22px 15px;
+  }
+}
+

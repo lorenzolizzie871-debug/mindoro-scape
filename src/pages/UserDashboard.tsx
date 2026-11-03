@@ -12,7 +12,6 @@ import {
   Heart,
   Star,
   Compass,
-  Map as MapIcon,
   UserRound,
   Waves,
   Umbrella,
@@ -21,10 +20,13 @@ import {
   Sailboat,
   Coffee,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import BottomTabs from '../components/BottomTabs';
 import './UserDashboard.css';
+import './UserDashboard.overrides.css';
 
 const LOGO_PATH = '/assets/mindoro-scape-logo.png';
 
@@ -39,6 +41,8 @@ type Resort = {
   category: string;
   resortType?: string;
   image: string;
+  imageGallery: string[];
+  municipality: string;
   badge: string;
   amenity: string;
   rateAmenities: string[];
@@ -53,6 +57,7 @@ type PackageDocument = {
   resortName?: string;
   resortLocation?: string;
   locationLabel?: string;
+  address?: string;
   price?: number;
   priceUnit?: 'night' | 'day' | 'hour';
   pricingOptions?: Array<{
@@ -67,8 +72,12 @@ type PackageDocument = {
   }>;
   amenities?: string[];
   description?: string;
-  imageUrl?: string;
-  imageUrls?: string[];
+  imageUrl?: unknown;
+  imageUrls?: unknown;
+  photos?: unknown;
+  images?: unknown;
+  gallery?: unknown;
+  coverImage?: unknown;
   availability?: 'available' | 'unavailable';
   status?: string;
 };
@@ -76,23 +85,93 @@ type PackageDocument = {
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1000&q=85';
 
+const collectPackageImages = (value: unknown): string[] => {
+  if (typeof value === 'string') {
+    const item = value.trim();
+    if (!item) return [];
+
+    if (item.startsWith('[') && item.endsWith(']')) {
+      try {
+        const parsed: unknown = JSON.parse(item);
+        if (Array.isArray(parsed)) return parsed.flatMap(collectPackageImages);
+      } catch {
+        // A regular URL or data URL is handled below.
+      }
+    }
+
+    return [item];
+  }
+
+  if (Array.isArray(value)) return value.flatMap(collectPackageImages);
+
+  if (value && typeof value === 'object') {
+    const image = value as Record<string, unknown>;
+    const direct =
+      image.url ??
+      image.src ??
+      image.downloadURL ??
+      image.downloadUrl ??
+      image.secure_url ??
+      image.fileUrl ??
+      image.dataUrl;
+
+    if (typeof direct === 'string' && direct.trim()) {
+      return collectPackageImages(direct);
+    }
+
+    if (typeof image.base64 === 'string' && image.base64.trim()) {
+      const raw = image.base64.trim();
+      return [raw.startsWith('data:') ? raw : `data:image/jpeg;base64,${raw}`];
+    }
+  }
+
+  return [];
+};
+
+const getMunicipalityName = (data: PackageDocument): string => {
+  const sources = [data.resortLocation, data.locationLabel, data.address]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+
+  const ignored = /^(oriental mindoro|mimaropa|philippines|mindoro|region iv-b)$/i;
+
+  for (const source of sources) {
+    const parts = source
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .filter((part) =>
+        !ignored.test(part) &&
+        !/^\d{4,6}$/.test(part) &&
+        !/^barangay\s+/i.test(part)
+      );
+
+    if (parts.length > 0) return parts[0];
+  }
+
+  return '';
+};
+
 const getPackageCardData = (id: string, data: PackageDocument): Resort => {
   const validRates = Array.isArray(data.pricingOptions)
     ? data.pricingOptions.filter(
-        (rate) => rate && Number.isFinite(Number(rate.price)) && Number(rate.price) > 0
+        (rate) =>
+          rate &&
+          Number.isFinite(Number(rate.price)) &&
+          Number(rate.price) > 0
       )
     : [];
+
   const lowestRate = [...validRates].sort(
     (a, b) => Number(a.price) - Number(b.price)
   )[0];
 
-  const price = lowestRate
-    ? Number(lowestRate.price)
-    : Number(data.price || 0);
+  const price = lowestRate ? Number(lowestRate.price) : Number(data.price || 0);
   const priceUnit = lowestRate?.unit || data.priceUnit || 'night';
   const amenities = Array.isArray(data.amenities)
     ? data.amenities.filter(Boolean)
     : [];
+
   const searchableText = [
     data.name,
     data.resortName,
@@ -113,11 +192,14 @@ const getPackageCardData = (id: string, data: PackageDocument): Resort => {
     'family resort': 'Family Resorts',
     'family resorts': 'Family Resorts',
   };
+
   let category = categoryMap[rawType] || '';
   if (!category) {
-    const searchableText = [data.name, data.resortName, data.description, ...amenities]
-      .filter(Boolean).join(' ').toLowerCase();
-    if (searchableText.includes('nature') || searchableText.includes('forest') || searchableText.includes('garden')) {
+    if (
+      searchableText.includes('nature') ||
+      searchableText.includes('forest') ||
+      searchableText.includes('garden')
+    ) {
       category = 'Nature Resorts';
     } else if (searchableText.includes('family')) {
       category = 'Family Resorts';
@@ -128,65 +210,58 @@ const getPackageCardData = (id: string, data: PackageDocument): Resort => {
     }
   }
 
+  const imageGallery = [
+    ...collectPackageImages(data.imageUrls),
+    ...collectPackageImages(data.photos),
+    ...collectPackageImages(data.images),
+    ...collectPackageImages(data.gallery),
+    ...collectPackageImages(data.imageUrl),
+    ...collectPackageImages(data.coverImage),
+  ].filter((image, index, all) => all.indexOf(image) === index);
+
+  const location =
+    data.locationLabel?.trim() ||
+    data.resortLocation?.trim() ||
+    data.address?.trim() ||
+    'Oriental Mindoro';
+
   return {
     id,
     name: data.name?.trim() || data.resortName?.trim() || 'Resort accommodation',
-    location: data.locationLabel?.trim() || data.resortLocation?.trim() || 'Oriental Mindoro',
+    location,
+    municipality: getMunicipalityName(data),
     price: Number.isFinite(price) ? price : 0,
     priceUnit,
     rating: 'New',
     reviews: 0,
     category,
     resortType: data.resortType || data.category || category,
-    image: data.imageUrls?.[0] || data.imageUrl || FALLBACK_IMAGE,
+    image: imageGallery[0] || FALLBACK_IMAGE,
+    imageGallery: imageGallery.length ? imageGallery : [FALLBACK_IMAGE],
     badge: category.toUpperCase(),
     amenity: [
       ...amenities,
       data.description || '',
     ].filter(Boolean).join(' · ') || 'Explore this accommodation',
     guestCapacity: lowestRate?.guestCapacity,
-    rateAmenities: Array.isArray(lowestRate?.includedAmenities) ? lowestRate.includedAmenities.filter(Boolean) : [],
-    pricingOptions: validRates.map((rate) => ({ ...rate, price: Number(rate.price), includedAmenities: Array.isArray(rate.includedAmenities) ? rate.includedAmenities.filter(Boolean) : [] })),
+    rateAmenities: Array.isArray(lowestRate?.includedAmenities)
+      ? lowestRate.includedAmenities.filter(Boolean)
+      : [],
+    pricingOptions: validRates.map((rate) => ({
+      ...rate,
+      price: Number(rate.price),
+      includedAmenities: Array.isArray(rate.includedAmenities)
+        ? rate.includedAmenities.filter(Boolean)
+        : [],
+    })),
   };
 };
-
 const categories = [
   { name: 'Private Resorts', icon: Waves },
   { name: 'Public Resorts', icon: Umbrella },
   { name: 'Beach Resorts', icon: Umbrella },
   { name: 'Nature Resorts', icon: Trees },
   { name: 'Family Resorts', icon: Coffee },
-];
-
-const municipalities = [
-  {
-    name: 'Puerto Galera',
-    description: 'Beaches & diving',
-    stays: 34,
-    image:
-      'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=800&q=85',
-  },
-  {
-    name: 'Bulalacao',
-    description: 'Islands & sandbars',
-    stays: 12,
-    image:
-      'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=800&q=85',
-  },
-  {
-    name: 'Calapan City',
-    description: 'City & coastline',
-    stays: 18,
-    image:
-      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=85',
-  },
-  {
-    name: 'Roxas',
-    description: 'Quiet coastal gateway',
-    stays: 9,
-    image:
-      'https://images.unsplash.com/photo-1519046904884-53103b34b206?auto=format&fit=crop&w=800&q=85',
-  },
 ];
 
 const formatPrice = (price: number) =>
@@ -206,6 +281,7 @@ const UserDashboard: React.FC = () => {
   const [activeCategory, setActiveCategory] =
     useState('All Resorts');
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [resortPhotoIndexes, setResortPhotoIndexes] = useState<Record<string, number>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [maxPrice, setMaxPrice] = useState('15000');
   const [showNotifications, setShowNotifications] = useState(false);
@@ -315,6 +391,40 @@ const UserDashboard: React.FC = () => {
       return matchesCategory && matchesSearch && matchesPrice;
     });
   }, [resorts, search, activeCategory, maxPrice]);
+
+  const municipalities = useMemo(() => {
+    const grouped = new Map<string, { name: string; stays: number; image: string }>();
+
+    resorts.forEach((resort) => {
+      const municipality = resort.municipality.trim();
+      if (!municipality) return;
+
+      const existing = grouped.get(municipality);
+      if (existing) {
+        existing.stays += 1;
+      } else {
+        grouped.set(municipality, {
+          name: municipality,
+          stays: 1,
+          image: resort.imageGallery[0] || resort.image || FALLBACK_IMAGE,
+        });
+      }
+    });
+
+    return Array.from(grouped.values()).sort(
+      (a, b) => b.stays - a.stays || a.name.localeCompare(b.name)
+    );
+  }, [resorts]);
+
+  const changeResortPhoto = (resortId: string, direction: -1 | 1, imageCount: number) => {
+    if (imageCount <= 1) return;
+
+    setResortPhotoIndexes((current) => {
+      const currentIndex = current[resortId] || 0;
+      const nextIndex = (currentIndex + direction + imageCount) % imageCount;
+      return { ...current, [resortId]: nextIndex };
+    });
+  };
 
   const toggleFavorite = (id: string) => {
     setFavorites((current) =>
@@ -572,10 +682,42 @@ const UserDashboard: React.FC = () => {
                         <div className="dashboard-resort-image-wrap">
                           <img
                             className="dashboard-resort-image"
-                            src={resort.image}
-                            alt={resort.name}
+                            src={resort.imageGallery[
+                              (resortPhotoIndexes[resort.id] || 0) % resort.imageGallery.length
+                            ] || resort.image}
+                            alt={`${resort.name} photo ${(resortPhotoIndexes[resort.id] || 0) + 1}`}
                             loading="lazy"
                           />
+
+                          {resort.imageGallery.length > 1 && (
+                            <div className="dashboard-photo-controls" aria-label={`${resort.name} photos`}>
+                              <button
+                                type="button"
+                                className="dashboard-photo-arrow"
+                                aria-label="Previous resort photo"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  changeResortPhoto(resort.id, -1, resort.imageGallery.length);
+                                }}
+                              >
+                                <ChevronLeft size={17} />
+                              </button>
+                              <span className="dashboard-photo-count">
+                                {(resortPhotoIndexes[resort.id] || 0) + 1}/{resort.imageGallery.length}
+                              </span>
+                              <button
+                                type="button"
+                                className="dashboard-photo-arrow"
+                                aria-label="Next resort photo"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  changeResortPhoto(resort.id, 1, resort.imageGallery.length);
+                                }}
+                              >
+                                <ChevronRight size={17} />
+                              </button>
+                            </div>
+                          )}
 
                           <span className="dashboard-resort-badge">
                             <Waves size={12} />
@@ -739,60 +881,47 @@ const UserDashboard: React.FC = () => {
                 </button>
               </div>
 
-              <div className="dashboard-destination-grid">
-                {municipalities.map((destination) => (
-                  <button
-                    type="button"
-                    className="dashboard-destination-card"
-                    key={destination.name}
-                    onClick={() => goToLocation(destination.name)}
-                  >
-                    <div className="dashboard-destination-image-wrap">
-                      <img
-                        src={destination.image}
-                        alt={destination.name}
-                        loading="lazy"
-                      />
+              {resortsLoading ? (
+                <div className="dashboard-empty-state">
+                  <p>Loading destinations from published resort listings...</p>
+                </div>
+              ) : municipalities.length > 0 ? (
+                <div className="dashboard-destination-grid">
+                  {municipalities.map((destination) => (
+                    <button
+                      type="button"
+                      className="dashboard-destination-card"
+                      key={destination.name}
+                      onClick={() => goToLocation(destination.name)}
+                    >
+                      <div className="dashboard-destination-image-wrap">
+                        <img
+                          src={destination.image}
+                          alt={`${destination.name} destination`}
+                          loading="lazy"
+                        />
+                        <span className="dashboard-stay-count">
+                          {destination.stays} {destination.stays === 1 ? 'stay' : 'stays'}
+                        </span>
+                      </div>
 
-                      <span className="dashboard-stay-count">
-                        {destination.stays} stays
-                      </span>
-                    </div>
-
-                    <div className="dashboard-destination-info">
-                      <h3>{destination.name}</h3>
-                      <p>{destination.description}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                      <div className="dashboard-destination-info">
+                        <h3>{destination.name}</h3>
+                        <p>Explore available accommodations</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="dashboard-empty-state">
+                  <MapPin size={26} />
+                  <h3>No destinations yet</h3>
+                  <p>Municipalities will appear here when resort owners publish accommodations with a location.</p>
+                </div>
+              )}
             </section>
 
-            <section className="dashboard-quick-access">
-              <button type="button" onClick={goToExplore}>
-                <span><Compass size={20} /></span>
-                <strong>Explore</strong>
-                <small>Discover resorts</small>
-              </button>
 
-              <button
-                type="button"
-                onClick={() => navigate('/user/favorites')} // ✅ INayos
-              >
-                <span><Heart size={20} /></span>
-                <strong>Favorites</strong>
-                <small>{favorites.length} saved on this page</small>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => navigate('/user/profile')} // ✅ INayos
-              >
-                <span><MapIcon size={20} /></span>
-                <strong>Profile</strong>
-                <small>Manage your account</small>
-              </button>
-            </section>
 
             <footer className="dashboard-footer">
               <span>MINDORO SCAPE</span>

@@ -406,3 +406,42 @@
     inset-inline: 9px;
   }
 }
+
+
+/* Resort detail additions */
+.rd-pool-access-info {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #e6edf2;
+}
+
+.rd-pool-access-info strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #17384c;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.rd-pool-access-info p {
+  margin: 0;
+  color: #5f7480;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.rd-owner-contact {
+  display: block;
+  margin-top: 4px;
+  color: #627986;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.rd-hero-image {
+  transition: opacity .16s ease;
+}
+
+.rd-thumb-error {
+  opacity: .5;
+}

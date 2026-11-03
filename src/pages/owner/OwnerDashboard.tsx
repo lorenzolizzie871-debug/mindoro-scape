@@ -76,6 +76,74 @@ type PricingUnit = 'person' | 'cottage' | 'hour' | 'day' | 'night' | 'package' |
 type PricingOption = { id: string; unit: PricingUnit; price: number; durationHours?: number; minimumHours?: number; guestCapacity?: number; label?: string; includedAmenities?: string[] | string; additionalServices?: AddOnOption[] };
 type AddOnOption = { id: string; name: string; price: number; unit: 'fixed' | 'per_person' | 'per_hour'; included: boolean };
 
+type BookingSessionKey = 'day' | 'night';
+type BookingSessionConfig = {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+};
+type BookingSchedule = {
+  availableDays: string[];
+  sessions: {
+    day: BookingSessionConfig;
+    night: BookingSessionConfig;
+  };
+  extension: {
+    enabled: boolean;
+    feePerHour: number;
+    maxHours: number;
+  };
+};
+
+const BOOKING_DAYS = [
+  { value: 'monday', label: 'Monday' },
+  { value: 'tuesday', label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday', label: 'Thursday' },
+  { value: 'friday', label: 'Friday' },
+  { value: 'saturday', label: 'Saturday' },
+  { value: 'sunday', label: 'Sunday' },
+];
+
+const DEFAULT_BOOKING_SCHEDULE: BookingSchedule = {
+  availableDays: BOOKING_DAYS.map((day) => day.value),
+  sessions: {
+    day: { enabled: true, startTime: '08:00', endTime: '17:00' },
+    night: { enabled: true, startTime: '18:00', endTime: '00:00' },
+  },
+  extension: { enabled: false, feePerHour: 0, maxHours: 4 },
+};
+
+const normalizeBookingSchedule = (value?: Partial<BookingSchedule> | null): BookingSchedule => {
+  const source = value || {};
+  const days = Array.isArray(source.availableDays)
+    ? source.availableDays.filter((day): day is string =>
+        BOOKING_DAYS.some((valid) => valid.value === String(day).toLowerCase())
+      ).map((day) => String(day).toLowerCase())
+    : [...DEFAULT_BOOKING_SCHEDULE.availableDays];
+
+  return {
+    availableDays: [...new Set(days)],
+    sessions: {
+      day: {
+        ...DEFAULT_BOOKING_SCHEDULE.sessions.day,
+        ...(source.sessions?.day || {}),
+      },
+      night: {
+        ...DEFAULT_BOOKING_SCHEDULE.sessions.night,
+        ...(source.sessions?.night || {}),
+      },
+    },
+    extension: {
+      ...DEFAULT_BOOKING_SCHEDULE.extension,
+      ...(source.extension || {}),
+      feePerHour: Math.max(0, Number(source.extension?.feePerHour ?? DEFAULT_BOOKING_SCHEDULE.extension.feePerHour) || 0),
+      maxHours: Math.min(12, Math.max(1, Number(source.extension?.maxHours ?? DEFAULT_BOOKING_SCHEDULE.extension.maxHours) || 4)),
+    },
+  };
+};
+
+
 type OwnerPackage = {
   id: string;
   ownerId: string;
@@ -97,6 +165,7 @@ type OwnerPackage = {
   longitude?: number;
   locationLabel?: string;
   availability?: 'available' | 'unavailable';
+  bookingSchedule?: BookingSchedule;
   status?: string;
   createdAt?: unknown;
 };
@@ -216,6 +285,25 @@ const OwnerDashboard: React.FC = () => {
   const [pkgAvailability, setPkgAvailability] = useState<
     'available' | 'unavailable'
   >('available');
+
+  // Owner-controlled weekly booking schedule, session hours, and extension fees.
+  const [bookingSchedule, setBookingSchedule] = useState<BookingSchedule>(() => ({
+    ...DEFAULT_BOOKING_SCHEDULE,
+    availableDays: [...DEFAULT_BOOKING_SCHEDULE.availableDays],
+  }));
+
+  const updateBookingSession = (
+    session: BookingSessionKey,
+    changes: Partial<BookingSessionConfig>
+  ) => {
+    setBookingSchedule((current) => ({
+      ...current,
+      sessions: {
+        ...current.sessions,
+        [session]: { ...current.sessions[session], ...changes },
+      },
+    }));
+  };
 
   // Coordinates
   const [latitude, setLatitude] = useState<number | null>(null);
@@ -629,6 +717,10 @@ const OwnerDashboard: React.FC = () => {
     setSelectedLocationLabel('');
 
     setPkgAvailability('available');
+    setBookingSchedule({
+      ...DEFAULT_BOOKING_SCHEDULE,
+      availableDays: [...DEFAULT_BOOKING_SCHEDULE.availableDays],
+    });
 
     setLatitude(null);
     setLongitude(null);
@@ -914,6 +1006,7 @@ const OwnerDashboard: React.FC = () => {
     setLatitude(typeof pkg.latitude === 'number' ? pkg.latitude : null);
     setLongitude(typeof pkg.longitude === 'number' ? pkg.longitude : null);
     setPkgAvailability(pkg.availability || 'available');
+    setBookingSchedule(normalizeBookingSchedule(pkg.bookingSchedule));
     setFormError('');
     setShowAddModal(true);
   };
@@ -1019,6 +1112,42 @@ const OwnerDashboard: React.FC = () => {
     );
     if (invalidCapacity) { setFormError('Guest capacity must be between 1 and 100 persons.'); return; }
 
+
+    if (bookingSchedule.availableDays.length === 0) {
+      setFormError('Select at least one available day for this accommodation.');
+      return;
+    }
+
+    if (!bookingSchedule.sessions.day.enabled && !bookingSchedule.sessions.night.enabled) {
+      setFormError('Enable at least one booking session: Day or Night.');
+      return;
+    }
+
+    const enabledSessions = (['day', 'night'] as BookingSessionKey[])
+      .filter((session) => bookingSchedule.sessions[session].enabled);
+
+    const invalidSession = enabledSessions.find((session) => {
+      const config = bookingSchedule.sessions[session];
+      return !/^([01]\d|2[0-3]):[0-5]\d$/.test(config.startTime) ||
+        !/^([01]\d|2[0-3]):[0-5]\d$/.test(config.endTime) ||
+        config.startTime === config.endTime;
+    });
+
+    if (invalidSession) {
+      setFormError(`Set a valid start and end time for the ${invalidSession === 'day' ? 'Day' : 'Night'} session.`);
+      return;
+    }
+
+    if (bookingSchedule.extension.enabled) {
+      if (!Number.isFinite(Number(bookingSchedule.extension.feePerHour)) || bookingSchedule.extension.feePerHour <= 0) {
+        setFormError('Enter an extension fee greater than zero, or disable the extension option.');
+        return;
+      }
+      if (!Number.isInteger(bookingSchedule.extension.maxHours) || bookingSchedule.extension.maxHours < 1 || bookingSchedule.extension.maxHours > 12) {
+        setFormError('Maximum extension must be between 1 and 12 hours.');
+        return;
+      }
+    }
 
     // Keep legacy price fields so existing customer/admin screens continue to work.
     const lowestRate = [...validPricingOptions].sort((a, b) => a.price - b.price)[0];
@@ -1130,6 +1259,20 @@ const OwnerDashboard: React.FC = () => {
         longitude,
 
         availability: pkgAvailability,
+
+        // Weekly availability and session rules shown to guests during booking.
+        bookingSchedule: {
+          availableDays: [...bookingSchedule.availableDays],
+          sessions: {
+            day: { ...bookingSchedule.sessions.day },
+            night: { ...bookingSchedule.sessions.night },
+          },
+          extension: {
+            enabled: bookingSchedule.extension.enabled,
+            feePerHour: Number(bookingSchedule.extension.feePerHour || 0),
+            maxHours: Number(bookingSchedule.extension.maxHours || 4),
+          },
+        },
 
         // Owner's resort account has already been approved.
         // Individual accommodation posts do not need admin approval.
@@ -2234,10 +2377,158 @@ const OwnerDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* LOCATION PICKER */}
+                    {/* BOOKING SCHEDULE & AVAILABILITY */}
                     <div className="owner-form-section">
                       <div className="owner-form-section-heading">
                         <span className="owner-form-step">03</span>
+                        <div>
+                          <h4>Booking Schedule & Availability</h4>
+                          <p>Set the days and time sessions guests can choose when requesting a reservation.</p>
+                        </div>
+                      </div>
+
+                      <div className="owner-schedule-panel">
+                        <div className="owner-schedule-block">
+                          <div className="owner-schedule-heading">
+                            <strong>Available days</strong>
+                            <small>Select all days when this accommodation accepts bookings.</small>
+                          </div>
+                          <div className="owner-day-picker">
+                            {BOOKING_DAYS.map((day) => {
+                              const checked = bookingSchedule.availableDays.includes(day.value);
+                              return (
+                                <label className={`owner-day-option ${checked ? 'is-selected' : ''}`} key={day.value}>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(event) => setBookingSchedule((current) => ({
+                                      ...current,
+                                      availableDays: event.target.checked
+                                        ? [...current.availableDays, day.value]
+                                        : current.availableDays.filter((value) => value !== day.value),
+                                    }))}
+                                    disabled={isSubmitting}
+                                  />
+                                  <span>{day.label.slice(0, 3)}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                          <small className="owner-field-hint">
+                            {bookingSchedule.availableDays.length
+                              ? `${bookingSchedule.availableDays.length} day(s) selected`
+                              : 'No days selected. Guests will not be able to request a booking.'}
+                          </small>
+                        </div>
+
+                        <div className="owner-schedule-sessions">
+                          <article className={`owner-session-config ${bookingSchedule.sessions.day.enabled ? 'is-enabled' : ''}`}>
+                            <label className="owner-session-toggle">
+                              <input
+                                type="checkbox"
+                                checked={bookingSchedule.sessions.day.enabled}
+                                onChange={(event) => updateBookingSession('day', { enabled: event.target.checked })}
+                                disabled={isSubmitting}
+                              />
+                              <span><strong>Day session</strong><small>Default: 8:00 AM – 5:00 PM</small></span>
+                            </label>
+                            {bookingSchedule.sessions.day.enabled && (
+                              <div className="owner-session-times">
+                                <div>
+                                  <label>Start time</label>
+                                  <input type="time" value={bookingSchedule.sessions.day.startTime}
+                                    onChange={(event) => updateBookingSession('day', { startTime: event.target.value })}
+                                    disabled={isSubmitting} />
+                                </div>
+                                <div>
+                                  <label>End time</label>
+                                  <input type="time" value={bookingSchedule.sessions.day.endTime}
+                                    onChange={(event) => updateBookingSession('day', { endTime: event.target.value })}
+                                    disabled={isSubmitting} />
+                                </div>
+                              </div>
+                            )}
+                          </article>
+
+                          <article className={`owner-session-config ${bookingSchedule.sessions.night.enabled ? 'is-enabled' : ''}`}>
+                            <label className="owner-session-toggle">
+                              <input
+                                type="checkbox"
+                                checked={bookingSchedule.sessions.night.enabled}
+                                onChange={(event) => updateBookingSession('night', { enabled: event.target.checked })}
+                                disabled={isSubmitting}
+                              />
+                              <span><strong>Night session</strong><small>Default: 6:00 PM – 12:00 AM</small></span>
+                            </label>
+                            {bookingSchedule.sessions.night.enabled && (
+                              <div className="owner-session-times">
+                                <div>
+                                  <label>Start time</label>
+                                  <input type="time" value={bookingSchedule.sessions.night.startTime}
+                                    onChange={(event) => updateBookingSession('night', { startTime: event.target.value })}
+                                    disabled={isSubmitting} />
+                                </div>
+                                <div>
+                                  <label>End time</label>
+                                  <input type="time" value={bookingSchedule.sessions.night.endTime}
+                                    onChange={(event) => updateBookingSession('night', { endTime: event.target.value })}
+                                    disabled={isSubmitting} />
+                                </div>
+                              </div>
+                            )}
+                          </article>
+                        </div>
+
+                        <div className="owner-extension-config">
+                          <label className="owner-session-toggle">
+                            <input
+                              type="checkbox"
+                              checked={bookingSchedule.extension.enabled}
+                              onChange={(event) => setBookingSchedule((current) => ({
+                                ...current,
+                                extension: { ...current.extension, enabled: event.target.checked },
+                              }))}
+                              disabled={isSubmitting}
+                            />
+                            <span><strong>Allow session extension</strong><small>Guests may request extra hours beyond the selected session.</small></span>
+                          </label>
+                          {bookingSchedule.extension.enabled && (
+                            <div className="owner-session-times owner-extension-fields">
+                              <div>
+                                <label>Extension fee per hour (₱)</label>
+                                <input
+                                  type="number" min="1" step="1"
+                                  value={bookingSchedule.extension.feePerHour || ''}
+                                  placeholder="e.g. 150"
+                                  onChange={(event) => setBookingSchedule((current) => ({
+                                    ...current,
+                                    extension: { ...current.extension, feePerHour: Number(event.target.value) },
+                                  }))}
+                                  disabled={isSubmitting}
+                                />
+                              </div>
+                              <div>
+                                <label>Maximum extension hours</label>
+                                <input
+                                  type="number" min="1" max="12" step="1"
+                                  value={bookingSchedule.extension.maxHours}
+                                  onChange={(event) => setBookingSchedule((current) => ({
+                                    ...current,
+                                    extension: { ...current.extension, maxHours: Number(event.target.value) },
+                                  }))}
+                                  disabled={isSubmitting}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* LOCATION PICKER */}
+                    <div className="owner-form-section">
+                      <div className="owner-form-section-heading">
+                        <span className="owner-form-step">04</span>
 
                         <div>
                           <h4>Accommodation location</h4>

@@ -8263,3 +8263,123 @@
 .owner-rate-amenities-field .owner-field-hint {
   margin: 0;
 }
+
+
+/* =========================================================
+   OWNER BOOKING SCHEDULE & AVAILABILITY
+   ========================================================= */
+.owner-schedule-panel {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #dce8ef;
+  border-radius: 16px;
+  background: #f8fbfd;
+}
+.owner-schedule-block,
+.owner-schedule-sessions,
+.owner-extension-config {
+  display: grid;
+  gap: 11px;
+}
+.owner-schedule-heading {
+  display: grid;
+  gap: 4px;
+}
+.owner-schedule-heading strong,
+.owner-session-toggle strong {
+  color: #123b52;
+  font-size: 13px;
+  font-weight: 850;
+}
+.owner-schedule-heading small,
+.owner-session-toggle small {
+  color: #718391;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.owner-day-picker {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 7px;
+}
+.owner-day-option {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  border: 1px solid #d9e5eb;
+  border-radius: 10px;
+  background: #fff;
+  color: #607582;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.owner-day-option input { position: absolute; opacity: 0; pointer-events: none; }
+.owner-day-option.is-selected {
+  border-color: #087b9c;
+  background: #eaf7fa;
+  color: #075d76;
+  box-shadow: inset 0 0 0 1px #087b9c;
+}
+.owner-schedule-sessions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.owner-session-config,
+.owner-extension-config {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #e0e8ed;
+  border-radius: 13px;
+  background: #fff;
+}
+.owner-session-config.is-enabled { border-color: #9bcbd8; }
+.owner-session-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  cursor: pointer;
+}
+.owner-session-toggle input {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  accent-color: #087b9c;
+}
+.owner-session-toggle span { display: grid; gap: 4px; min-width: 0; }
+.owner-session-times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-top: 13px;
+}
+.owner-session-times > div { min-width: 0; }
+.owner-session-times label {
+  display: block;
+  margin-bottom: 6px;
+  color: #607582;
+  font-size: 10px;
+  font-weight: 800;
+}
+.owner-session-times input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 9px;
+  border: 1px solid #d9e5eb;
+  border-radius: 9px;
+  background: #fff;
+  color: #123b52;
+  font: inherit;
+  font-size: 12px;
+}
+.owner-extension-config { background: #fffdf8; border-color: #f0dfbd; }
+.owner-extension-fields input[type="number"] { appearance: textfield; }
+@media (max-width: 620px) {
+  .owner-schedule-sessions { grid-template-columns: 1fr; }
+  .owner-day-picker { gap: 5px; }
+  .owner-day-option { min-height: 38px; font-size: 10px; }
+  .owner-session-times { gap: 7px; }
+}

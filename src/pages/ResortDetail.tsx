@@ -10,6 +10,7 @@ import {
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import './ResortDetail.css';
+import './BookingSchedule.css';
 
 type PricingOption = {
   id?: string;
@@ -29,6 +30,84 @@ type PricingOption = {
     included: boolean;
   }[];
 };
+
+type BookingSessionKey = 'day' | 'night';
+type BookingSessionConfig = {
+  enabled: boolean;
+  startTime: string;
+  endTime: string;
+};
+type BookingSchedule = {
+  availableDays: string[];
+  sessions: {
+    day: BookingSessionConfig;
+    night: BookingSessionConfig;
+  };
+  extension: {
+    enabled: boolean;
+    feePerHour: number;
+    maxHours: number;
+  };
+};
+
+const BOOKING_DAYS = [
+  { value: 'monday', label: 'Monday' },
+  { value: 'tuesday', label: 'Tuesday' },
+  { value: 'wednesday', label: 'Wednesday' },
+  { value: 'thursday', label: 'Thursday' },
+  { value: 'friday', label: 'Friday' },
+  { value: 'saturday', label: 'Saturday' },
+  { value: 'sunday', label: 'Sunday' },
+];
+
+const DEFAULT_BOOKING_SCHEDULE: BookingSchedule = {
+  availableDays: BOOKING_DAYS.map((day) => day.value),
+  sessions: {
+    day: { enabled: true, startTime: '08:00', endTime: '17:00' },
+    night: { enabled: true, startTime: '18:00', endTime: '00:00' },
+  },
+  extension: { enabled: false, feePerHour: 0, maxHours: 4 },
+};
+
+const normalizeBookingSchedule = (value?: Partial<BookingSchedule> | null): BookingSchedule => {
+  const source = value || {};
+  const days = Array.isArray(source.availableDays)
+    ? source.availableDays.filter((day): day is string =>
+        BOOKING_DAYS.some((valid) => valid.value === String(day).toLowerCase())
+      ).map((day) => String(day).toLowerCase())
+    : [...DEFAULT_BOOKING_SCHEDULE.availableDays];
+
+  return {
+    availableDays: [...new Set(days)],
+    sessions: {
+      day: {
+        ...DEFAULT_BOOKING_SCHEDULE.sessions.day,
+        ...(source.sessions?.day || {}),
+      },
+      night: {
+        ...DEFAULT_BOOKING_SCHEDULE.sessions.night,
+        ...(source.sessions?.night || {}),
+      },
+    },
+    extension: {
+      ...DEFAULT_BOOKING_SCHEDULE.extension,
+      ...(source.extension || {}),
+      feePerHour: Math.max(0, Number(source.extension?.feePerHour ?? DEFAULT_BOOKING_SCHEDULE.extension.feePerHour) || 0),
+      maxHours: Math.min(12, Math.max(1, Number(source.extension?.maxHours ?? DEFAULT_BOOKING_SCHEDULE.extension.maxHours) || 4)),
+    },
+  };
+};
+
+const formatScheduleTime = (value: string) => {
+  const [hourText, minuteText] = String(value || '').split(':');
+  const hour = Number(hourText);
+  const minute = minuteText || '00';
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return value;
+  const suffix = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minute} ${suffix}`;
+};
+
 type ResortDocument = {
   id: string;
   ownerId?: string;
@@ -53,7 +132,14 @@ type ResortDocument = {
   latitude?: number;
   longitude?: number;
   availability?: string;
+  bookingSchedule?: BookingSchedule;
   childFreeUnderAge?: number | null;
+  poolAccess?: {
+    enabled?: boolean;
+    included?: boolean;
+    price?: number;
+    pricingType?: 'bulk' | 'per_person' | string | null;
+  };
   status?: string;
   // Legacy listing-level services from older Owner Dashboard versions.
   addOns?: {
@@ -68,6 +154,8 @@ type OwnerProfile = {
   resortName?: string;
   resortLocation?: string;
   fullName?: string;
+  phone?: string;
+  email?: string;
 };
 type Coordinates = { latitude: number; longitude: number };
 type TravelMode = 'walking' | 'transit' | 'driving';
@@ -238,9 +326,14 @@ const ResortDetail: React.FC = () => {
 
       if (value && typeof value === 'object') {
         const image = value as Record<string, unknown>;
-        return collectImages(
-          image.url ?? image.src ?? image.downloadURL ?? image.dataUrl ?? image.base64
-        );
+        const direct = image.url ?? image.src ?? image.downloadURL ??
+          image.downloadUrl ?? image.secure_url ?? image.fileUrl ?? image.dataUrl;
+        if (typeof direct === 'string' && direct.trim()) return collectImages(direct);
+        if (typeof image.base64 === 'string' && image.base64.trim()) {
+          const raw = image.base64.trim();
+          return [raw.startsWith('data:') ? raw : `data:image/jpeg;base64,${raw}`];
+        }
+        return [];
       }
 
       return [];
@@ -263,6 +356,10 @@ const ResortDetail: React.FC = () => {
 
     return uniqueImages.length > 0 ? uniqueImages : [FALLBACK_IMAGE];
   }, [resort]);
+
+  useEffect(() => {
+    setPhotoIndex((current) => Math.min(current, Math.max(0, photos.length - 1)));
+  }, [photos.length]);
 
   const showPreviousPhoto = () => {
     setPhotoIndex((current) => (current - 1 + photos.length) % photos.length);
@@ -375,6 +472,9 @@ const ResortDetail: React.FC = () => {
     resort?.resortLocation?.trim() ||
     resort?.address?.trim() ||
     'Location not provided';
+
+  const publicBookingSchedule = normalizeBookingSchedule(resort?.bookingSchedule);
+  const ownerDisplayName = ownerProfile?.fullName?.trim() || 'Resort Host';
   const resortType = resort?.resortType || resort?.category || 'Resort';
   const amenities = Array.isArray(resort?.amenities) ? resort.amenities.filter(Boolean) : [];
   const resortCoordinates = resort &&
@@ -526,7 +626,7 @@ const ResortDetail: React.FC = () => {
         <main className="rd-main">
           <section className="rd-gallery">
             <div className="rd-hero">
-              <img className="rd-hero-image" src={photos[photoIndex] || FALLBACK_IMAGE}
+              <img key={`${resort.id}-${photoIndex}-${photos[photoIndex] || 'fallback'}`} className="rd-hero-image" src={photos[photoIndex] || FALLBACK_IMAGE}
                 alt={`${resortName} photo ${photoIndex + 1}`}
                 onError={(event) => {
                   const target = event.currentTarget;
@@ -612,6 +712,99 @@ const ResortDetail: React.FC = () => {
             </div>
           </section>
 
+          <section className="rd-section">
+            <div className="rd-section-heading">
+              <h3>Owner Information & Availability</h3>
+              <span className="rd-tag">Owner schedule</span>
+            </div>
+            <div className="rd-card rd-owner-availability-card">
+              <div className="rd-owner-profile-line">
+                <span className="rd-owner-avatar"><UserRound size={21} /></span>
+                <div>
+                  <small>Hosted by</small>
+                  <strong>{ownerDisplayName}</strong>
+                  <span>{ownerProfile?.resortName?.trim() || resortName}</span>
+                  {ownerProfile?.phone && <small className="rd-owner-contact">Contact: {ownerProfile.phone}</small>}
+                  {ownerProfile?.email && <small className="rd-owner-contact">{ownerProfile.email}</small>}
+                </div>
+              </div>
+
+              <div className="rd-owner-availability-group">
+                <strong>Available days</strong>
+                <div className="rd-available-days">
+                  {BOOKING_DAYS.map((day) => {
+                    const available = publicBookingSchedule.availableDays.includes(day.value);
+                    return (
+                      <span className={`rd-available-day ${available ? 'is-available' : 'is-unavailable'}`} key={day.value}>
+                        {day.label.slice(0, 3)}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rd-owner-session-list">
+                {(['day', 'night'] as BookingSessionKey[]).map((session) => {
+                  const config = publicBookingSchedule.sessions[session];
+                  if (!config.enabled) return null;
+                  return (
+                    <div className="rd-owner-session-row" key={session}>
+                      <span className={`rd-owner-session-icon ${session}`}>
+                        <Clock size={17} />
+                      </span>
+                      <div>
+                        <strong>{session === 'day' ? 'Day session' : 'Night session'}</strong>
+                        <small>{formatScheduleTime(config.startTime)} – {formatScheduleTime(config.endTime)}</small>
+                      </div>
+                      <span className="rd-owner-session-enabled">Available</span>
+                    </div>
+                  );
+                })}
+                {!publicBookingSchedule.sessions.day.enabled && !publicBookingSchedule.sessions.night.enabled && (
+                  <p className="rd-no-schedule">The owner has not enabled a booking session yet.</p>
+                )}
+              </div>
+
+              <div className="rd-owner-extension-note">
+                <strong>Session extension</strong>
+                {publicBookingSchedule.extension.enabled
+                  ? <p>Extension requests are allowed at <b>{formatPrice(publicBookingSchedule.extension.feePerHour)}</b> per hour, up to {publicBookingSchedule.extension.maxHours} hour(s). Subject to owner confirmation.</p>
+                  : <p>Session extension is not currently offered by the owner.</p>}
+              </div>
+            </div>
+          </section>
+
+
+          {(amenities.length > 0 || resort.poolAccess?.enabled) && (
+            <section className="rd-section">
+              <div className="rd-section-heading">
+                <h3>Accommodation Amenities & Facilities</h3>
+                <span className="rd-tag">Owner provided</span>
+              </div>
+              <div className="rd-card rd-about-card">
+                {amenities.length > 0 ? (
+                  <div className="rd-amenity-grid">
+                    {amenities.map((item, index) => (
+                      <div className="rd-amenity" key={`${item}-${index}`}>
+                        <span className="rd-amenity-icon">{amenityIcon(item)}</span>
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p>No general amenities have been added by the owner.</p>}
+                {resort.poolAccess?.enabled && (
+                  <div className="rd-pool-access-info">
+                    <strong>Pool access</strong>
+                    <p>
+                      {resort.poolAccess.included
+                        ? 'Pool access is included with this accommodation.'
+                        : `Pool access is available for ${formatPrice(resort.poolAccess.price || 0)} ${resort.poolAccess.pricingType === 'per_person' ? 'per person' : 'as a one-time fee'}.`}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           <section className="rd-section">
             <div className="rd-section-heading"><h3>Children Policy</h3></div>

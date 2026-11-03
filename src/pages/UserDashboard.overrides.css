@@ -1,0 +1,134 @@
+/* MINDORO SCAPE — UserDashboard layout refinements */
+
+.dashboard-resort-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 16px;
+  padding-top: 4px;
+}
+
+.dashboard-resort-bottom > p {
+  margin: 0;
+  min-width: 0;
+}
+
+.dashboard-resort-bottom > button {
+  flex: 0 0 auto;
+  margin: 0 0 0 auto;
+  padding: 12px 17px;
+  border-radius: 13px;
+}
+
+.dashboard-resort-image-wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-photo-controls {
+  position: absolute;
+  z-index: 3;
+  left: 10px;
+  bottom: 43px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(8, 37, 51, 0.58);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+.dashboard-photo-arrow {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  cursor: pointer;
+}
+
+.dashboard-photo-arrow:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dashboard-photo-count {
+  min-width: 28px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.dashboard-destination-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.dashboard-destination-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dashboard-destination-image-wrap {
+  position: relative;
+}
+
+.dashboard-destination-image-wrap img {
+  display: block;
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+}
+
+.dashboard-destination-info {
+  padding: 14px 16px 16px;
+}
+
+.dashboard-destination-info h3 {
+  margin: 0 0 5px;
+}
+
+.dashboard-destination-info p {
+  margin: 0;
+}
+
+@media (max-width: 1050px) {
+  .dashboard-destination-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-resort-bottom {
+    align-items: flex-end;
+    gap: 10px;
+  }
+
+  .dashboard-resort-bottom > button {
+    padding: 10px 13px;
+    white-space: nowrap;
+  }
+
+  .dashboard-photo-controls {
+    bottom: 40px;
+    left: 8px;
+  }
+
+  .dashboard-destination-grid {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+
+  .dashboard-destination-image-wrap img {
+    height: 185px;
+  }
+}
