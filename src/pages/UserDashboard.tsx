@@ -19,6 +19,15 @@ import {
   ArrowRight,
   Sailboat,
   Coffee,
+  Cloud,
+  CloudSun,
+  CloudRain,
+  CloudLightning,
+  Sun,
+  Wind,
+  Droplets,
+  RefreshCw,
+  AlertTriangle,
   X,
   ChevronLeft,
   ChevronRight,
@@ -267,6 +276,32 @@ const categories = [
 const formatPrice = (price: number) =>
   `₱${price.toLocaleString('en-PH')}`;
 
+type WeatherData = {
+  location: string;
+  country?: string;
+  temperature: number;
+  feelsLike?: number;
+  humidity?: number;
+  condition: string;
+  description?: string;
+  windSpeed?: number;
+  rain?: number;
+  timestamp?: number;
+};
+
+type WeatherApiResponse = {
+  success: boolean;
+  data?: WeatherData;
+  message?: string;
+};
+
+const WEATHER_API_BASE_URL = String(
+  import.meta.env.VITE_API_URL || 'http://localhost:3000'
+).replace(/\/$/, '');
+
+const WEATHER_FALLBACK_CITY = 'Victoria,PH';
+const WEATHER_REFRESH_INTERVAL = 15 * 60 * 1000;
+
 const UserDashboard: React.FC = () => {
   const navigate = useNavigate();
 
@@ -287,6 +322,126 @@ const UserDashboard: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [maxPrice, setMaxPrice] = useState('15000');
   const [showNotifications, setShowNotifications] = useState(false);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState(true);
+  const [weatherError, setWeatherError] = useState('');
+  const [weatherRefreshing, setWeatherRefreshing] = useState(false);
+  const [weatherLocationLabel, setWeatherLocationLabel] = useState('Detecting your location...');
+  const [weatherCoordinates, setWeatherCoordinates] = useState<{ lat: number; lon: number } | null>(null);
+  const [profileWeatherCity, setProfileWeatherCity] = useState('');
+
+  const loadWeather = async (signal?: AbortSignal, coords = weatherCoordinates, city = profileWeatherCity) => {
+    setWeatherError('');
+    setWeatherRefreshing(true);
+    try {
+      const locationQuery = coords
+        ? `lat=${encodeURIComponent(String(coords.lat))}&lon=${encodeURIComponent(String(coords.lon))}`
+        : `city=${encodeURIComponent(city || WEATHER_FALLBACK_CITY)}`;
+      const response = await fetch(
+        `${WEATHER_API_BASE_URL}/api/weather/current?${locationQuery}`,
+        { signal }
+      );
+      const result = (await response.json()) as WeatherApiResponse;
+      if (!response.ok || !result.success || !result.data) {
+        throw new Error(result.message || 'Weather information is temporarily unavailable.');
+      }
+      setWeather(result.data);
+      setWeatherLocationLabel(result.data.location || city || 'Current location');
+      setWeatherError('');
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
+      console.error('Unable to load dashboard weather:', error);
+      setWeatherError(error instanceof Error ? error.message : 'Unable to load weather information. Please try again.');
+    } finally {
+      if (!signal?.aborted) {
+        setWeatherLoading(false);
+        setWeatherRefreshing(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    let refreshTimer: number | undefined;
+    const controller = new AbortController();
+
+    const loadFallbackCity = async () => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const profileSnapshot = await getDoc(doc(db, 'users', user.uid));
+          if (profileSnapshot.exists()) {
+            const profile = profileSnapshot.data();
+            const city = String(
+              profile.city || profile.municipality || profile.address || ''
+            ).trim();
+            if (city && active) {
+              setProfileWeatherCity(city);
+              setWeatherLocationLabel(city);
+              await loadWeather(controller.signal, null, city);
+              return;
+            }
+          }
+        }
+      } catch (profileError) {
+        console.warn('Unable to read profile location for weather fallback:', profileError);
+      }
+      if (active) {
+        setWeatherLocationLabel('Victoria (fallback location)');
+        await loadWeather(controller.signal, null, WEATHER_FALLBACK_CITY);
+      }
+    };
+
+    const start = async () => {
+      if (!navigator.geolocation) {
+        await loadFallbackCity();
+      } else {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            if (!active) return;
+            const coords = {
+              lat: position.coords.latitude,
+              lon: position.coords.longitude,
+            };
+            setWeatherCoordinates(coords);
+            setWeatherLocationLabel('Your device location');
+            await loadWeather(controller.signal, coords, '');
+          },
+          async (geoError) => {
+            console.info('Device location unavailable; using profile location/fallback.', geoError.message);
+            await loadFallbackCity();
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 10 * 60 * 1000 }
+        );
+      }
+    };
+
+    void start();
+    refreshTimer = window.setInterval(() => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (!active) return;
+            const coords = { lat: position.coords.latitude, lon: position.coords.longitude };
+            setWeatherCoordinates(coords);
+            void loadWeather(undefined, coords, '');
+          },
+          () => {
+            void loadFallbackCity();
+          },
+          { enableHighAccuracy: false, timeout: 10000, maximumAge: 10 * 60 * 1000 }
+        );
+      } else {
+        void loadFallbackCity();
+      }
+    }, WEATHER_REFRESH_INTERVAL);
+
+    return () => {
+      active = false;
+      controller.abort();
+      if (refreshTimer) window.clearInterval(refreshTimer);
+    };
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -526,6 +681,28 @@ const UserDashboard: React.FC = () => {
     });
   };
 
+  const weatherCondition = String(weather?.condition || '').toLowerCase();
+  const hasWeatherAdvisory = Boolean(
+    weather &&
+    (
+      weatherCondition.includes('thunderstorm') ||
+      Number(weather.rain || 0) >= 7.5 ||
+      Number(weather.windSpeed || 0) >= 15
+    )
+  );
+
+  const WeatherIcon = weatherCondition.includes('thunderstorm')
+    ? CloudLightning
+    : weatherCondition.includes('rain') || weatherCondition.includes('drizzle')
+      ? CloudRain
+      : weatherCondition.includes('cloud')
+        ? Cloud
+        : weatherCondition.includes('clear')
+          ? Sun
+          : CloudSun;
+
+  const refreshWeather = () => { void loadWeather(); };
+
   return (
     <IonPage>
       <IonContent
@@ -616,6 +793,71 @@ const UserDashboard: React.FC = () => {
                     : 'Where would you like to escape in Oriental Mindoro?'}
                 </p>
               </div>
+            </section>
+
+            <section className="dashboard-weather-card" aria-label="Current weather">
+              <div className="dashboard-weather-main">
+                <div className="dashboard-weather-heading">
+                  <span className="dashboard-weather-eyebrow">WEATHER UPDATE</span>
+                  <span className="dashboard-weather-location">
+                    <MapPin size={13} />
+                    {weather?.location || weatherLocationLabel}
+                  </span>
+                </div>
+
+                {weatherLoading && !weather ? (
+                  <div className="dashboard-weather-loading">
+                    <CloudSun size={30} />
+                    <span>Loading current weather...</span>
+                  </div>
+                ) : weatherError && !weather ? (
+                  <div className="dashboard-weather-error">
+                    <Cloud size={27} />
+                    <span>{weatherError}</span>
+                    <button type="button" onClick={refreshWeather}>Try again</button>
+                  </div>
+                ) : weather ? (
+                  <>
+                    <div className="dashboard-weather-reading">
+                      <div className="dashboard-weather-temperature">
+                        <WeatherIcon size={48} strokeWidth={1.7} />
+                        <strong>{Math.round(weather.temperature)}°C</strong>
+                      </div>
+                      <div className="dashboard-weather-condition">
+                        <strong>{weather.description || weather.condition}</strong>
+                        <span>Feels like {Math.round(weather.feelsLike ?? weather.temperature)}°C</span>
+                      </div>
+                    </div>
+
+                    <div className="dashboard-weather-metrics">
+                      <span><Droplets size={15} /> Humidity <strong>{weather.humidity ?? '—'}%</strong></span>
+                      <span><Wind size={15} /> Wind <strong>{Number(weather.windSpeed || 0).toFixed(1)} m/s</strong></span>
+                    </div>
+                    {hasWeatherAdvisory && (
+                      <div className="dashboard-weather-advisory" role="status">
+                        <AlertTriangle size={17} />
+                        <span>Weather advisory: conditions may affect outdoor activities. Check local advisories before travelling.</span>
+                      </div>
+                    )}
+                    <small className="dashboard-weather-updated">
+                      {weather.timestamp
+                        ? `Updated ${new Date(weather.timestamp * 1000).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })}`
+                        : 'Current conditions'}
+                    </small>
+                  </>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                className="dashboard-weather-refresh"
+                onClick={refreshWeather}
+                disabled={weatherRefreshing}
+                aria-label="Refresh weather"
+                title="Refresh weather"
+              >
+                <RefreshCw size={17} className={weatherRefreshing ? 'is-spinning' : ''} />
+              </button>
             </section>
 
             <section

@@ -727,44 +727,52 @@ const OwnerDashboard: React.FC = () => {
 
 
   // =========================================================
-  // LIVE WEATHER FOR THE SELECTED ACCOMMODATION LOCATION
-  // Existing backend route: GET /api/weather/current?lat=...&lon=...
+  // LIVE WEATHER FOR THE OWNER DASHBOARD OVERVIEW
   // =========================================================
 
   useEffect(() => {
-    if (!showAddModal || latitude === null || longitude === null) {
-      setAccommodationWeather(null);
-      setWeatherError('');
-      setWeatherLoading(false);
+    if (!userData || userData.status !== 'approved' || activeOwnerTab !== 'overview') {
       return;
     }
 
     const controller = new AbortController();
 
-    const loadWeather = async () => {
+    const loadDashboardWeather = async () => {
       setWeatherLoading(true);
       setWeatherError('');
 
       try {
-        const params = new URLSearchParams({
-          lat: String(latitude),
-          lon: String(longitude),
-        });
+        const locatedPackage = packages.find(
+          (item) =>
+            typeof item.latitude === 'number' &&
+            Number.isFinite(item.latitude) &&
+            typeof item.longitude === 'number' &&
+            Number.isFinite(item.longitude)
+        );
+
+        const params = new URLSearchParams();
+
+        if (locatedPackage) {
+          params.set('lat', String(locatedPackage.latitude));
+          params.set('lon', String(locatedPackage.longitude));
+        } else if (userData.resortLocation?.trim()) {
+          params.set('city', userData.resortLocation.trim());
+        } else {
+          throw new Error(
+            'No resort location is available. Add a resort location in your owner profile or save an accommodation with a map pin.'
+          );
+        }
 
         const response = await fetch(
           `${weatherApiBase}/api/weather/current?${params.toString()}`,
           { signal: controller.signal }
         );
-
         const result = await response.json();
 
         if (!response.ok || result?.success !== true || !result?.data) {
-          const message =
-            result?.message ||
-            (response.status === 401
-              ? 'The weather API key is not active yet. Please try again later.'
-              : 'Weather information is currently unavailable.');
-          throw new Error(message);
+          throw new Error(
+            result?.message || 'Weather information is currently unavailable.'
+          );
         }
 
         setAccommodationWeather(result.data);
@@ -781,10 +789,16 @@ const OwnerDashboard: React.FC = () => {
       }
     };
 
-    void loadWeather();
+    void loadDashboardWeather();
 
     return () => controller.abort();
-  }, [showAddModal, latitude, longitude, weatherRefresh, weatherApiBase]);
+  }, [
+    userData,
+    activeOwnerTab,
+    packages,
+    weatherRefresh,
+    weatherApiBase,
+  ]);
 
   const getAccommodationWeatherAdvisory = (weather: any) => {
     const condition = String(weather?.condition || '').toLowerCase();
@@ -1922,6 +1936,123 @@ const OwnerDashboard: React.FC = () => {
                   </article>
                 </div>
 
+                {/* OWNER DASHBOARD WEATHER */}
+                <section className="owner-weather-card owner-dashboard-weather">
+                  <div className="owner-weather-heading">
+                    <div className="owner-weather-heading-icon">
+                      <IonIcon icon={sparklesOutline} />
+                    </div>
+                    <div>
+                      <span className="owner-weather-kicker">LOCAL WEATHER</span>
+                      <h4>Weather at your resort</h4>
+                      <p>Current weather conditions based on your resort location.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="owner-weather-refresh"
+                      onClick={() => setWeatherRefresh((value) => value + 1)}
+                      disabled={weatherLoading}
+                      aria-label="Refresh weather"
+                    >
+                      <IonIcon icon={timeOutline} />
+                    </button>
+                  </div>
+
+                  {weatherLoading ? (
+                    <div className="owner-weather-placeholder">
+                      <IonSpinner name="crescent" />
+                      <strong>Checking resort weather...</strong>
+                      <span>Retrieving the latest available conditions.</span>
+                    </div>
+                  ) : weatherError ? (
+                    <div className="owner-weather-error" role="status">
+                      <IonIcon icon={informationCircleOutline} />
+                      <div>
+                        <strong>Weather service unavailable</strong>
+                        <span>{weatherError}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setWeatherRefresh((value) => value + 1)}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : accommodationWeather ? (
+                    <>
+                      <div className="owner-weather-current">
+                        <div className="owner-weather-current-main">
+                          {accommodationWeather.icon && (
+                            <img
+                              src={`https://openweathermap.org/img/wn/${accommodationWeather.icon}@2x.png`}
+                              alt={accommodationWeather.description || 'Weather icon'}
+                            />
+                          )}
+                          <div>
+                            <strong>{Math.round(Number(accommodationWeather.temperature || 0))}°C</strong>
+                            <span>{accommodationWeather.description || accommodationWeather.condition}</span>
+                          </div>
+                        </div>
+                        <div className="owner-weather-location">
+                          <IonIcon icon={locationOutline} />
+                          {accommodationWeather.location || userData?.resortLocation || 'Your resort'}
+                        </div>
+                      </div>
+
+                      <div className="owner-weather-stats">
+                        <div>
+                          <span>Feels like</span>
+                          <strong>{Math.round(Number(accommodationWeather.feelsLike || 0))}°C</strong>
+                        </div>
+                        <div>
+                          <span>Humidity</span>
+                          <strong>{Number(accommodationWeather.humidity || 0)}%</strong>
+                        </div>
+                        <div>
+                          <span>Wind speed</span>
+                          <strong>{Number(accommodationWeather.windSpeed || 0)} m/s</strong>
+                        </div>
+                        <div>
+                          <span>Rainfall</span>
+                          <strong>{Number(accommodationWeather.rain || 0)} mm</strong>
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const advisory = getAccommodationWeatherAdvisory(accommodationWeather);
+                        return (
+                          <div className={`owner-weather-advisory ${advisory.level}`}>
+                            <IonIcon
+                              icon={
+                                advisory.level === 'warning'
+                                  ? informationCircleOutline
+                                  : advisory.level === 'caution'
+                                    ? timeOutline
+                                    : checkmarkCircleOutline
+                              }
+                            />
+                            <div>
+                              <strong>{advisory.title}</strong>
+                              <span>{advisory.message}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      <small className="owner-weather-disclaimer">
+                        Informational weather conditions only. This is not an official storm warning.
+                        Follow PAGASA for official warnings and safety instructions.
+                      </small>
+                    </>
+                  ) : (
+                    <div className="owner-weather-placeholder">
+                      <IonIcon icon={locationOutline} />
+                      <strong>Weather is not available yet</strong>
+                      <span>Check your resort location and try refreshing.</span>
+                    </div>
+                  )}
+                </section>
+
                 {/* QUICK ACTION */}
                 <div className="owner-section-heading">
                   <div>
@@ -3000,97 +3131,7 @@ const OwnerDashboard: React.FC = () => {
                         </p>
                       </div>
 
-                      {/* LIVE WEATHER PREVIEW */}
-                      <section className="owner-weather-card">
-                        <div className="owner-weather-heading">
-                          <div className="owner-weather-heading-icon">
-                            <IonIcon icon={sparklesOutline} />
-                          </div>
-                          <div>
-                            <span className="owner-weather-kicker">LIVE LOCATION WEATHER</span>
-                            <h4>Weather at this accommodation</h4>
-                            <p>Automatically updates when the map location changes.</p>
-                          </div>
-                          {latitude !== null && longitude !== null && (
-                            <button
-                              type="button"
-                              className="owner-weather-refresh"
-                              onClick={() => setWeatherRefresh((value) => value + 1)}
-                              disabled={weatherLoading}
-                              aria-label="Refresh weather"
-                            >
-                              <IonIcon icon={timeOutline} />
-                            </button>
-                          )}
-                        </div>
 
-                        {latitude === null || longitude === null ? (
-                          <div className="owner-weather-placeholder">
-                            <IonIcon icon={locationOutline} />
-                            <strong>Select a map location first</strong>
-                            <span>Current weather will appear here after you pin the accommodation.</span>
-                          </div>
-                        ) : weatherLoading ? (
-                          <div className="owner-weather-placeholder">
-                            <IonSpinner name="crescent" />
-                            <strong>Checking local weather...</strong>
-                            <span>Retrieving current conditions for the selected coordinates.</span>
-                          </div>
-                        ) : weatherError ? (
-                          <div className="owner-weather-error">
-                            <IonIcon icon={informationCircleOutline} />
-                            <div>
-                              <strong>Weather service unavailable</strong>
-                              <span>{weatherError}</span>
-                            </div>
-                            <button type="button" onClick={() => setWeatherRefresh((value) => value + 1)}>
-                              Retry
-                            </button>
-                          </div>
-                        ) : accommodationWeather ? (
-                          <>
-                            <div className="owner-weather-current">
-                              <div className="owner-weather-current-main">
-                                {accommodationWeather.icon && (
-                                  <img
-                                    src={`https://openweathermap.org/img/wn/${accommodationWeather.icon}@2x.png`}
-                                    alt={accommodationWeather.description || 'Weather icon'}
-                                  />
-                                )}
-                                <div>
-                                  <strong>{Math.round(Number(accommodationWeather.temperature || 0))}°C</strong>
-                                  <span>{accommodationWeather.description || accommodationWeather.condition}</span>
-                                </div>
-                              </div>
-                              <div className="owner-weather-location">
-                                <IonIcon icon={locationOutline} />
-                                {accommodationWeather.location || selectedLocationLabel || 'Selected accommodation'}
-                              </div>
-                            </div>
-
-                            <div className="owner-weather-stats">
-                              <div><span>Feels like</span><strong>{Math.round(Number(accommodationWeather.feelsLike || 0))}°C</strong></div>
-                              <div><span>Humidity</span><strong>{Number(accommodationWeather.humidity || 0)}%</strong></div>
-                              <div><span>Wind speed</span><strong>{Number(accommodationWeather.windSpeed || 0)} m/s</strong></div>
-                              <div><span>Rainfall</span><strong>{Number(accommodationWeather.rain || 0)} mm</strong></div>
-                            </div>
-
-                            {(() => {
-                              const advisory = getAccommodationWeatherAdvisory(accommodationWeather);
-                              return (
-                                <div className={`owner-weather-advisory ${advisory.level}`}>
-                                  <IonIcon icon={advisory.level === 'warning' ? informationCircleOutline : advisory.level === 'caution' ? timeOutline : checkmarkCircleOutline} />
-                                  <div><strong>{advisory.title}</strong><span>{advisory.message}</span></div>
-                                </div>
-                              );
-                            })()}
-                            <small className="owner-weather-disclaimer">
-                              Informational weather conditions only. This is not an official storm warning.
-                              Follow PAGASA for official warnings and safety instructions.
-                            </small>
-                          </>
-                        ) : null}
-                      </section>
 
                       {latitude !== null && longitude !== null && (
                         <button

@@ -8457,94 +8457,29 @@
   margin-top: 12px;
 }
 
-/* Compact custom checkbox cards for accepted event types */
-.owner-modal .owner-event-type-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
-  margin-top: 12px;
-}
-
-.owner-modal .owner-event-type-option {
-  position: relative;
+.owner-event-type-option {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  min-width: 0;
-  min-height: 48px;
-  padding: 10px 12px;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 10px;
   border: 1px solid #e1e9ee;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #fff;
-  color: #425b68;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.35;
+  color: #526b78;
+  font-size: 10px;
+  font-weight: 600;
   cursor: pointer;
-  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
 }
 
-.owner-modal .owner-event-type-option:hover {
-  border-color: #9acbc8;
-  background: #f8fdfc;
+.owner-event-type-option.is-selected {
+  border-color: #8ac8c5;
+  background: #eaf8f6;
+  color: #087f78;
 }
 
-.owner-modal .owner-event-type-option:active {
-  transform: scale(.99);
-}
-
-.owner-modal .owner-event-type-option input[type="checkbox"] {
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  display: grid !important;
-  place-items: center;
-  flex: 0 0 19px !important;
-  width: 19px !important;
-  height: 19px !important;
-  min-width: 19px !important;
-  min-height: 19px !important;
-  max-width: 19px !important;
-  max-height: 19px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: 1.5px solid #b8c9ce !important;
-  border-radius: 6px !important;
-  background: #fff !important;
-  box-shadow: none !important;
-  cursor: pointer;
-  transition: background .18s ease, border-color .18s ease;
-}
-
-.owner-modal .owner-event-type-option input[type="checkbox"]::after {
-  content: "";
-  width: 5px;
-  height: 9px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg) scale(0);
-  transition: transform .15s ease;
-}
-
-.owner-modal .owner-event-type-option input[type="checkbox"]:checked {
-  border-color: #078b88 !important;
-  background: #078b88 !important;
-}
-
-.owner-modal .owner-event-type-option input[type="checkbox"]:checked::after {
-  transform: rotate(45deg) scale(1);
-}
-
-.owner-modal .owner-event-type-option.is-selected {
-  border-color: #83c5bf;
-  background: #effaf8;
-  color: #086f70;
-  box-shadow: 0 2px 8px rgba(7, 139, 136, .07);
-}
-
-.owner-modal .owner-event-type-option input[type="checkbox"]:focus-visible {
-  outline: 3px solid rgba(7, 139, 136, .18);
-  outline-offset: 2px;
+.owner-event-type-option input {
+  accent-color: #078b88;
 }
 
 .owner-event-hint,
@@ -9002,4 +8937,12 @@
   .owner-feedback-actions {
     flex-direction: column-reverse;
   }
+}
+
+
+/* Weather is displayed on the owner overview dashboard, not in the
+   add/edit accommodation form. */
+.owner-dashboard-weather {
+  margin: 24px 0 30px;
+  width: 100%;
 }

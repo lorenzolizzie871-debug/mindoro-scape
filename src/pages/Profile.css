@@ -774,3 +774,146 @@
     transition: none;
   }
 }
+
+
+/* PLATFORM REVIEW */
+.profile-review-card {
+  margin-top: 18px;
+  padding: 27px;
+  border: 1px solid #e8eef5;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 26px rgba(7, 59, 83, 0.035);
+}
+.profile-review-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.profile-review-heading h2 {
+  margin: 0;
+  color: #073b53;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.3px;
+}
+.profile-review-heading p:last-child {
+  max-width: 480px;
+  margin: 7px 0 0;
+  color: #71838f;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.profile-review-icon {
+  display: flex;
+  flex: 0 0 43px;
+  align-items: center;
+  justify-content: center;
+  width: 43px;
+  height: 43px;
+  border-radius: 13px;
+  background: #fff5df;
+  color: #b77912;
+}
+.profile-review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+.profile-review-rating {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.profile-review-label {
+  color: #173f51;
+  font-size: 12px;
+  font-weight: 800;
+}
+.profile-review-stars {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.profile-review-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #c5ced4;
+  cursor: pointer;
+  transition: color .15s ease, transform .15s ease;
+}
+.profile-review-star.is-selected { color: #e6a12a; }
+.profile-review-star:hover:not(:disabled) { transform: translateY(-2px); }
+.profile-review-stars strong {
+  margin-left: 7px;
+  color: #75510f;
+  font-size: 12px;
+}
+.profile-review-select,
+.profile-review-textarea {
+  width: 100%;
+  border: 1px solid #dce6ec;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #073b53;
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+.profile-review-select {
+  min-height: 47px;
+  padding: 0 13px;
+}
+.profile-review-textarea {
+  min-height: 112px;
+  padding: 12px 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+.profile-review-select:focus,
+.profile-review-textarea:focus {
+  border-color: #087b91;
+  box-shadow: 0 0 0 3px rgba(8, 123, 145, .09);
+}
+.profile-review-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(110deg, #b77912, #e0a12c);
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 5px 13px rgba(183, 121, 18, .13);
+}
+.profile-review-submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+.profile-review-star:focus-visible,
+.profile-review-submit:focus-visible {
+  outline: 3px solid rgba(8, 123, 145, .25);
+  outline-offset: 3px;
+}
+@media (max-width: 520px) {
+  .profile-review-card { padding: 21px 17px; border-radius: 15px; }
+  .profile-review-heading h2 { font-size: 18px; }
+}

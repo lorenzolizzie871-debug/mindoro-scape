@@ -48,7 +48,17 @@ type ResortListing = {
 };
 
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
-const DEFAULT_CENTER: [number, number] = [121.0, 13.1];
+
+// A closer default camera focused on Oriental Mindoro.
+const DEFAULT_CENTER: [number, number] = [121.35, 13.05];
+const DEFAULT_ZOOM = 9.15;
+
+// Approximate island-wide viewport: keeps Oriental Mindoro visible
+// when there are multiple resorts instead of zooming out to the whole region.
+const ORIENTAL_MINDORO_BOUNDS: [[number, number], [number, number]] = [
+  [120.78, 12.18],
+  [121.98, 13.55],
+];
 
 const MUNICIPALITIES = [
   'All',
@@ -163,6 +173,7 @@ const Explore: React.FC = () => {
   const mapRef = useRef<MapLibreMap | null>(null);
   const markersRef = useRef<MapLibreMarker[]>([]);
   const selectedMarkerRef = useRef<MapLibreMarker | null>(null);
+  const userLocationMarkerRef = useRef<MapLibreMarker | null>(null);
 
   const [listings, setListings] = useState<ResortListing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -279,7 +290,7 @@ const Explore: React.FC = () => {
     if (flyTo && mapRef.current) {
       mapRef.current.flyTo({
         center: [listing.longitude, listing.latitude],
-        zoom: Math.max(mapRef.current.getZoom(), 11),
+        zoom: 12.4,
         duration: 700,
       });
     }
@@ -296,7 +307,9 @@ const Explore: React.FC = () => {
         container: mapContainerRef.current,
         style: MAP_STYLE,
         center: DEFAULT_CENTER,
-        zoom: 7.4,
+        zoom: DEFAULT_ZOOM,
+        minZoom: 8.2,
+        maxZoom: 18,
         attributionControl: {},
       });
 
@@ -314,6 +327,12 @@ const Explore: React.FC = () => {
         setMapReady(true);
         setMapError('');
         map?.resize();
+        // Keep the initial view focused on Oriental Mindoro.
+        map?.fitBounds(ORIENTAL_MINDORO_BOUNDS, {
+          padding: { top: 34, right: 34, bottom: 34, left: 34 },
+          maxZoom: DEFAULT_ZOOM,
+          duration: 0,
+        });
       });
 
       map.on('error', (event) => {
@@ -332,6 +351,8 @@ const Explore: React.FC = () => {
       markersRef.current = [];
       selectedMarkerRef.current?.remove();
       selectedMarkerRef.current = null;
+      userLocationMarkerRef.current?.remove();
+      userLocationMarkerRef.current = null;
       map?.remove();
       mapRef.current = null;
       setMapReady(false);
@@ -380,23 +401,22 @@ const Explore: React.FC = () => {
       markersRef.current.push(marker);
     });
 
-    if (filteredListings.length > 0 && !selectedId) {
-      const bounds = new maplibregl.LngLatBounds();
-      filteredListings.forEach((item) =>
-        bounds.extend([item.longitude, item.latitude]),
-      );
-
+    if (!selectedId) {
       if (filteredListings.length === 1) {
+        // A single resort gets a close-up view of its exact coordinates.
         map.flyTo({
           center: [filteredListings[0].longitude, filteredListings[0].latitude],
-          zoom: 11,
-          duration: 600,
+          zoom: 12.4,
+          duration: 700,
+          essential: true,
         });
       } else {
-        map.fitBounds(bounds, {
-          padding: 55,
-          maxZoom: 11,
-          duration: 600,
+        // Multiple resorts (or no matches) keep the whole Oriental Mindoro
+        // island in view. Do not fit only the pins, which can zoom too far out.
+        map.fitBounds(ORIENTAL_MINDORO_BOUNDS, {
+          padding: { top: 42, right: 42, bottom: 42, left: 42 },
+          maxZoom: DEFAULT_ZOOM,
+          duration: 650,
         });
       }
     }
@@ -460,14 +480,36 @@ const Explore: React.FC = () => {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        mapRef.current?.flyTo({
-          center: [
-            position.coords.longitude,
-            position.coords.latitude,
-          ],
-          zoom: 13,
-          duration: 800,
-        });
+        const coordinates: [number, number] = [
+          position.coords.longitude,
+          position.coords.latitude,
+        ];
+        const map = mapRef.current;
+
+        if (map) {
+          map.flyTo({
+            center: coordinates,
+            zoom: 13.5,
+            duration: 900,
+            essential: true,
+          });
+
+          // Replace the previous blue location dot if the user locates again.
+          userLocationMarkerRef.current?.remove();
+
+          const locationElement = document.createElement('div');
+          locationElement.className = 'explore-user-location-marker';
+          locationElement.setAttribute('role', 'img');
+          locationElement.setAttribute('aria-label', 'Your current location');
+
+          userLocationMarkerRef.current = new maplibregl.Marker({
+            element: locationElement,
+            anchor: 'center',
+          })
+            .setLngLat(coordinates)
+            .addTo(map);
+        }
+
         setMapError('');
       },
       (error) => {

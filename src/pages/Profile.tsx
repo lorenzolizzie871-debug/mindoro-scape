@@ -32,6 +32,8 @@ import {
   LoaderCircle,
   CheckCircle2,
   AlertCircle,
+  Star,
+  MessageSquareText,
   X,
 } from 'lucide-react';
 
@@ -60,6 +62,14 @@ const Profile: React.FC = () => {
 
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Platform review state
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewCategory, setReviewCategory] = useState('Overall Experience');
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState('');
+  const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -261,6 +271,61 @@ const Profile: React.FC = () => {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSubmitPlatformReview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const user = auth.currentUser;
+    const comment = reviewComment.trim();
+
+    if (!user || user.uid !== uid) {
+      setReviewError('Please sign in again before submitting your review.');
+      return;
+    }
+
+    if (comment.length < 5) {
+      setReviewError('Please enter at least 5 characters in your feedback.');
+      return;
+    }
+
+    setReviewSaving(true);
+    setReviewMessage('');
+    setReviewError('');
+
+    try {
+      const reviewerRole =
+        role.toLowerCase() === 'owner' ? 'owner' : 'traveler';
+
+      // One platform review document per account. Users can update their review later.
+      await setDoc(
+        doc(db, 'platformReviews', user.uid),
+        {
+          userId: user.uid,
+          userName: fullName.trim() || user.displayName || 'Mindoro Scape user',
+          email: user.email ?? email,
+          role: reviewerRole,
+          rating: reviewRating,
+          category: reviewCategory,
+          comment,
+          status: 'published',
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      setReviewMessage('Thank you! Your platform review has been submitted.');
+    } catch (error: unknown) {
+      console.error('Platform review submission error:', error);
+      if (error instanceof FirebaseError && error.code === 'permission-denied') {
+        setReviewError('Your review could not be submitted because Firestore denied access. Please check your security rules.');
+      } else {
+        setReviewError('Unable to submit your review right now. Please try again.');
+      }
+    } finally {
+      setReviewSaving(false);
     }
   };
 
@@ -512,6 +577,104 @@ const Profile: React.FC = () => {
                     <>
                       <Save size={17} />
                       Save Changes
+                    </>
+                  )}
+                </button>
+              </form>
+            </section>
+
+            <section className="profile-review-card">
+              <div className="profile-review-heading">
+                <div>
+                  <p className="profile-eyebrow">YOUR FEEDBACK MATTERS</p>
+                  <h2>Rate Mindoro Scape</h2>
+                  <p>Share your experience using the platform. Your feedback helps us improve.</p>
+                </div>
+                <span className="profile-review-icon">
+                  <MessageSquareText size={22} />
+                </span>
+              </div>
+
+              <form className="profile-review-form" onSubmit={handleSubmitPlatformReview}>
+                <div className="profile-review-rating">
+                  <span className="profile-review-label">Your overall rating</span>
+                  <div className="profile-review-stars" role="group" aria-label="Choose a rating from 1 to 5 stars">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`profile-review-star ${value <= reviewRating ? 'is-selected' : ''}`}
+                        onClick={() => setReviewRating(value)}
+                        aria-label={`${value} star${value > 1 ? 's' : ''}`}
+                        aria-pressed={reviewRating === value}
+                        disabled={reviewSaving}
+                      >
+                        <Star size={27} fill={value <= reviewRating ? 'currentColor' : 'none'} />
+                      </button>
+                    ))}
+                    <strong>{reviewRating}/5</strong>
+                  </div>
+                </div>
+
+                <div className="profile-field">
+                  <label htmlFor="platform-review-category">Review category</label>
+                  <select
+                    id="platform-review-category"
+                    className="profile-review-select"
+                    value={reviewCategory}
+                    onChange={(event) => setReviewCategory(event.target.value)}
+                    disabled={reviewSaving}
+                  >
+                    <option>Overall Experience</option>
+                    <option>Ease of Use</option>
+                    <option>Features and Services</option>
+                    <option>Platform Performance</option>
+                  </select>
+                </div>
+
+                <div className="profile-field">
+                  <label htmlFor="platform-review-comment">Your comment</label>
+                  <textarea
+                    id="platform-review-comment"
+                    className="profile-review-textarea"
+                    value={reviewComment}
+                    onChange={(event) => {
+                      setReviewComment(event.target.value);
+                      setReviewError('');
+                    }}
+                    placeholder="Tell us what you like or what we can improve..."
+                    minLength={5}
+                    maxLength={1000}
+                    rows={4}
+                    required
+                    disabled={reviewSaving}
+                  />
+                  <small className="profile-field-note">{reviewComment.length}/1000 characters</small>
+                </div>
+
+                {reviewMessage && (
+                  <div className="profile-success" role="status">
+                    <CheckCircle2 size={17} />
+                    <span>{reviewMessage}</span>
+                  </div>
+                )}
+                {reviewError && (
+                  <div className="profile-error" role="alert">
+                    <AlertCircle size={17} />
+                    <span>{reviewError}</span>
+                  </div>
+                )}
+
+                <button className="profile-review-submit" type="submit" disabled={reviewSaving || reviewComment.trim().length < 5}>
+                  {reviewSaving ? (
+                    <>
+                      <LoaderCircle size={17} className="profile-button-spinner" />
+                      Submitting review...
+                    </>
+                  ) : (
+                    <>
+                      <Star size={17} />
+                      Submit Platform Review
                     </>
                   )}
                 </button>

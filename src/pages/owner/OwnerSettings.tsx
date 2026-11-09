@@ -21,6 +21,7 @@ import {
   refreshOutline,
   shieldCheckmarkOutline,
   businessOutline,
+  starOutline,
   flashOutline,
   saveOutline,
 } from 'ionicons/icons';
@@ -103,6 +104,10 @@ const OwnerSettings: React.FC<OwnerSettingsProps> = ({
   const [pausing, setPausing] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewCategory, setReviewCategory] = useState('Overall Experience');
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
   const ownerPhotoInput = useRef<HTMLInputElement>(null);
   const resortPhotoInput = useRef<HTMLInputElement>(null);
 
@@ -351,6 +356,52 @@ const OwnerSettings: React.FC<OwnerSettingsProps> = ({
     }
   };
 
+  const submitPlatformReview = async () => {
+    if (!uid) {
+      setError('Please sign in again before submitting your review.');
+      return;
+    }
+    const cleanComment = reviewComment.trim();
+    if (!cleanComment) {
+      setError('Please enter a comment about your experience.');
+      return;
+    }
+    if (cleanComment.length < 5) {
+      setError('Please write at least 5 characters so we can understand your feedback.');
+      return;
+    }
+
+    setSubmittingReview(true);
+    setError('');
+    setNotice('');
+    try {
+      const currentUser = auth.currentUser;
+      const reviewRef = doc(db, 'platformReviews', uid);
+      await setDoc(reviewRef, {
+        userId: uid,
+        userName: profile.displayName || currentUser?.displayName || 'Business Owner',
+        email: profile.email || currentUser?.email || '',
+        role: 'owner',
+        rating: reviewRating,
+        category: reviewCategory,
+        comment: cleanComment,
+        status: 'published',
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+      }, { merge: true });
+
+      setReviewComment('');
+      setReviewRating(5);
+      setReviewCategory('Overall Experience');
+      showNotice('Thank you! Your platform review has been submitted.');
+    } catch (err) {
+      console.error('Owner platform review submission failed:', err);
+      setError('We could not submit your review. Please check your connection and try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
   const handleSignOut = async () => {
     if (onSignOut) {
       onSignOut();
@@ -482,6 +533,71 @@ const OwnerSettings: React.FC<OwnerSettingsProps> = ({
             setDraftName(profile.displayName);
             setProfileModalOpen(true);
           }} />
+        </div>
+      </section>
+
+      <section className="os-section">
+        <div className="os-section-label"><span>YOUR FEEDBACK</span><small><i /> Help us improve</small></div>
+        <div className="os-card os-review-card">
+          <div className="os-review-intro">
+            <span className="os-row-icon"><IonIcon icon={starOutline} /></span>
+            <div className="os-review-intro-copy">
+              <strong>Rate Mindoro Scape</strong>
+              <small>Share your experience as a resort owner. Your feedback will be visible to the platform administrator.</small>
+            </div>
+          </div>
+
+          <div className="os-review-stars" role="group" aria-label="Rate Mindoro Scape from one to five stars">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                className={`os-review-star ${star <= reviewRating ? 'active' : ''}`}
+                onClick={() => setReviewRating(star)}
+                aria-label={`${star} star${star > 1 ? 's' : ''}`}
+                aria-pressed={reviewRating === star}
+              >
+                <IonIcon icon={starOutline} />
+              </button>
+            ))}
+          </div>
+          <p className="os-review-rating-label">
+            {reviewRating === 5 ? 'Excellent' : reviewRating === 4 ? 'Very good' : reviewRating === 3 ? 'Good' : reviewRating === 2 ? 'Needs improvement' : 'Poor'} · {reviewRating} out of 5
+          </p>
+
+          <label className="os-review-field">
+            <span>Review category</span>
+            <select value={reviewCategory} onChange={(event) => setReviewCategory(event.target.value)}>
+              <option>Overall Experience</option>
+              <option>Ease of Use</option>
+              <option>Features and Services</option>
+              <option>Platform Performance</option>
+              <option>Support for Resort Owners</option>
+            </select>
+          </label>
+
+          <label className="os-review-field">
+            <span>Your comments</span>
+            <textarea
+              value={reviewComment}
+              onChange={(event) => setReviewComment(event.target.value.slice(0, 1000))}
+              placeholder="Tell us what you like about Mindoro Scape or what we can improve..."
+              maxLength={1000}
+              rows={4}
+            />
+            <small className="os-review-counter">{reviewComment.length}/1000 characters</small>
+          </label>
+
+          <p className="os-review-note">Your review is submitted under your Owner account and can be viewed by the Mindoro Scape administrator.</p>
+          <button
+            type="button"
+            className="os-review-submit"
+            disabled={submittingReview || !reviewComment.trim()}
+            onClick={() => void submitPlatformReview()}
+          >
+            {submittingReview ? <IonSpinner name="crescent" /> : <IonIcon icon={starOutline} />}
+            {submittingReview ? 'Submitting review...' : 'Submit Platform Review'}
+          </button>
         </div>
       </section>
 

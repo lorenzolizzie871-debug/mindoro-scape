@@ -1,3698 +1,1596 @@
 /* Reservation page. Header styles are shared from ResortDetail.css (rd-*) */
 
-
-
-
-
-
-
 .rv-page .rd-content::part(scroll) {
-
-
 
   padding-bottom: 32px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-main {
 
-
-
   width: 100%;
-
-
 
   max-width: 560px;
 
-
-
   margin: 0 auto;
-
-
 
   padding: 16px 20px 24px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-card {
 
-
-
   border-radius: 12px;
 
-
-
   background: #fff;
-
-
 
   box-shadow: 0 2px 10px rgba(11, 79, 108, 0.06);
 
-
-
 }
-
-
-
-
-
-
 
 .rv-muted {
 
-
-
   color: #41484d;
-
-
 
   font-size: 11px;
 
-
-
   font-weight: 700;
-
-
 
   letter-spacing: 0.04em;
 
-
-
 }
-
-
-
-
-
-
 
 /* ---------- BANNER ---------- */
 
-
-
-
-
-
-
 .rv-banner {
-
-
 
   display: flex;
 
-
-
   align-items: center;
-
-
 
   gap: 8px;
 
-
-
   padding: 16px;
-
-
 
   border-radius: 12px;
 
-
-
   background: #eff4ff;
-
-
 
   box-shadow: 0 1px 4px rgba(11, 79, 108, 0.05);
 
-
-
 }
-
-
-
-
-
-
 
 .rv-banner-icon {
 
-
-
   display: grid;
-
-
 
   place-items: center;
 
-
-
   flex-shrink: 0;
-
-
 
   width: 36px;
 
-
-
   height: 36px;
 
-
-
   border-radius: 50%;
-
-
 
   background: #bfe9ff;
 
-
-
   color: #001f2a;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-banner > div {
 
-
-
   min-width: 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-banner small {
 
-
-
   display: block;
-
-
 
   color: #006685;
 
-
-
   font-size: 11px;
-
-
 
   font-weight: 700;
 
-
-
   letter-spacing: 0.06em;
-
-
 
   text-transform: uppercase;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-banner p {
 
-
-
   margin: 0;
-
-
 
   overflow: hidden;
 
-
-
   color: #41484d;
-
-
 
   font-size: 13px;
 
-
-
   line-height: 18px;
-
-
 
   text-overflow: ellipsis;
 
-
-
   white-space: nowrap;
 
-
-
 }
-
-
-
-
-
-
 
 /* ---------- RESORT SUMMARY ---------- */
 
-
-
-
-
-
-
 .rv-summary {
-
-
 
   display: flex;
 
-
-
   align-items: center;
-
-
 
   gap: 16px;
 
-
-
   margin-top: 16px;
-
-
 
   padding: 16px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-image {
 
-
-
   position: relative;
 
-
-
   flex-shrink: 0;
-
-
 
   width: 80px;
 
-
-
   height: 80px;
-
-
 
   overflow: hidden;
 
-
-
   border-radius: 8px;
-
-
 
   background: #e5eeff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-image img {
 
-
-
   display: block;
-
-
 
   width: 100%;
 
-
-
   height: 100%;
-
-
 
   object-fit: cover;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-rating {
 
-
-
   position: absolute;
-
-
 
   bottom: 4px;
 
-
-
   left: 4px;
-
-
 
   display: flex;
 
-
-
   align-items: center;
-
-
 
   gap: 2px;
 
-
-
   padding: 2px 6px;
-
-
 
   border-radius: 4px;
 
-
-
   background: rgba(255, 255, 255, 0.92);
-
-
 
   color: #001c37;
 
-
-
   font-size: 11px;
-
-
 
   font-weight: 700;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-rating svg {
 
-
-
   color: #773726;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-info {
 
-
-
   display: flex;
-
-
 
   flex: 1;
 
-
-
   flex-direction: column;
-
-
 
   min-width: 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-location {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   gap: 4px;
-
-
 
   color: #006685;
 
-
-
   font-size: 11px;
-
-
 
   font-weight: 700;
 
-
-
   letter-spacing: 0.04em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-location svg {
 
-
-
   flex-shrink: 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-info h2 {
 
-
-
   margin: 2px 0 0;
-
-
 
   overflow: hidden;
 
-
-
   color: #001c37;
-
-
 
   font-size: 17px;
 
-
-
   line-height: 24px;
-
-
 
   font-weight: 600;
 
-
-
   letter-spacing: -0.01em;
-
-
 
   text-overflow: ellipsis;
 
-
-
   white-space: nowrap;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-info > strong {
 
-
-
   margin-top: 2px;
 
-
-
   overflow: hidden;
-
-
 
   color: #0b4f6c;
 
-
-
   font-size: 13px;
-
-
 
   font-weight: 600;
 
-
-
   text-overflow: ellipsis;
-
-
 
   white-space: nowrap;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-tags {
 
-
-
   display: flex;
-
-
 
   flex-wrap: wrap;
 
-
-
   gap: 6px;
-
-
 
   margin-top: 6px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-summary-tags span {
 
-
-
   max-width: 100%;
-
-
 
   padding: 2px 8px;
 
-
-
   overflow: hidden;
-
-
 
   border-radius: 999px;
 
-
-
   background: #e5eeff;
-
-
 
   color: #41484d;
 
-
-
   font-size: 11px;
-
-
 
   font-weight: 700;
 
-
-
   letter-spacing: 0.02em;
-
-
 
   text-overflow: ellipsis;
 
-
-
   white-space: nowrap;
 
-
-
 }
-
-
-
-
-
-
 
 /* ---------- SECTIONS ---------- */
 
-
-
-
-
-
-
 .rv-section {
-
-
 
   margin-top: 24px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-section-heading {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   justify-content: space-between;
-
-
 
   gap: 8px;
 
-
-
   margin-bottom: 8px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-section-heading h3 {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   gap: 6px;
-
-
 
   margin: 0;
 
-
-
   color: #001c37;
 
-
-
   font-size: 17px;
-
-
 
   line-height: 24px;
 
-
-
   font-weight: 600;
-
-
 
   letter-spacing: -0.01em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-section-heading h3 svg {
 
-
-
   color: #006685;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-currency {
 
-
-
   padding: 2px 8px;
-
-
 
   border-radius: 999px;
 
-
-
   background: #dce9ff;
-
-
 
   color: #006685;
 
-
-
   font-size: 11px;
-
-
 
   font-weight: 700;
 
-
-
   letter-spacing: 0.04em;
-
-
 
   white-space: nowrap;
 
-
-
 }
-
-
-
-
-
-
 
 /* ---------- STAY ---------- */
 
-
-
-
-
-
-
 .rv-stay {
-
-
 
   display: flex;
 
-
-
   flex-direction: column;
-
-
 
   gap: 16px;
 
-
-
   padding: 16px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-dates {
 
-
-
   position: relative;
 
-
-
   display: grid;
-
-
 
   grid-template-columns: 1fr 1fr;
 
-
-
   gap: 8px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date {
 
-
-
   position: relative;
-
-
 
   display: flex;
 
-
-
   flex-direction: column;
 
-
-
   min-width: 0;
-
-
 
   padding: 8px 12px;
 
-
-
   border-radius: 8px;
-
-
 
   background: #eff4ff;
 
-
-
   cursor: pointer;
-
-
 
   transition: background 0.15s ease;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date:active,
 
-
-
 .rv-date:focus-within {
-
-
 
   background: #e5eeff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date-out {
 
-
-
   padding-left: 20px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date small {
 
-
-
   color: #41484d;
-
-
 
   font-size: 11px;
 
-
-
   line-height: 14px;
-
-
 
   font-weight: 700;
 
-
-
   letter-spacing: 0.04em;
-
-
 
   text-transform: uppercase;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date > div {
 
-
-
   display: flex;
-
-
 
   align-items: baseline;
 
-
-
   gap: 4px;
-
-
 
   margin-top: 4px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date strong {
 
-
-
   color: #001c37;
-
-
 
   font-size: 20px;
 
-
-
   line-height: 28px;
-
-
 
   font-weight: 700;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date span {
 
-
-
   color: #001c37;
-
-
 
   font-size: 13px;
 
-
-
   font-weight: 600;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date em {
 
-
-
   margin-top: 2px;
-
-
 
   color: #41484d;
 
-
-
   font-size: 13px;
-
-
 
   font-style: normal;
 
-
-
   line-height: 18px;
 
-
-
 }
-
-
-
-
-
-
 
 /* Invisible native date input covering the whole card */
 
-
-
 .rv-date input[type='date'] {
-
-
 
   position: absolute;
 
-
-
   inset: 0;
-
-
 
   width: 100%;
 
-
-
   height: 100%;
-
-
 
   margin: 0;
 
-
-
   padding: 0;
 
-
-
   border: 0;
-
-
 
   opacity: 0;
 
-
-
   cursor: pointer;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date input[type='date']::-webkit-calendar-picker-indicator {
 
-
-
   position: absolute;
-
-
 
   inset: 0;
 
-
-
   width: 100%;
-
-
 
   height: 100%;
 
-
-
   cursor: pointer;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-date-arrow {
 
-
-
   position: absolute;
-
-
 
   top: 50%;
 
-
-
   left: 50%;
-
-
 
   z-index: 2;
 
-
-
   display: grid;
 
-
-
   place-items: center;
-
-
 
   width: 28px;
 
-
-
   height: 28px;
-
-
 
   border-radius: 50%;
 
-
-
   background: #fff;
 
-
-
   color: #006685;
-
-
 
   box-shadow: 0 1px 4px rgba(11, 79, 108, 0.15);
 
-
-
   transform: translate(-50%, -50%);
-
-
 
   pointer-events: none;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-steppers {
 
-
-
   display: flex;
-
-
 
   flex-direction: column;
 
-
-
   gap: 12px;
-
-
 
   padding-top: 4px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-stepper-row {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   justify-content: space-between;
-
-
 
   gap: 12px;
 
-
-
   padding: 4px 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-stepper-label {
 
-
-
   display: flex;
-
-
 
   flex-direction: column;
 
-
-
   min-width: 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-stepper-label strong {
 
-
-
   color: #001c37;
-
-
 
   font-size: 15px;
 
-
-
   line-height: 20px;
-
-
 
   font-weight: 600;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-stepper-label span {
 
-
-
   color: #41484d;
-
-
 
   font-size: 13px;
 
-
-
   line-height: 18px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-stepper {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   gap: 12px;
-
-
 
   flex-shrink: 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-step {
 
-
-
   display: grid;
 
-
-
   place-items: center;
-
-
 
   width: 32px;
 
-
-
   height: 32px;
-
-
 
   padding: 0;
 
-
-
   border: 0;
-
-
 
   border-radius: 50%;
 
-
-
   cursor: pointer;
-
-
 
   transition: transform 0.15s ease, opacity 0.2s ease;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-step:active:not(:disabled) {
 
-
-
   transform: scale(0.92);
 
-
-
 }
-
-
-
-
-
-
 
 .rv-step.minus {
 
-
-
   background: #e5eeff;
-
-
 
   color: #001c37;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-step.plus {
 
-
-
   background: #0b4f6c;
-
-
 
   color: #fff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-step:disabled {
 
-
-
   opacity: 0.45;
-
-
 
   cursor: not-allowed;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-count {
 
-
-
   width: 20px;
-
-
 
   color: #001c37;
 
-
-
   font-size: 17px;
-
-
 
   font-weight: 600;
 
-
-
   text-align: center;
 
-
-
 }
-
-
-
-
-
-
 
 /* ---------- FORM ---------- */
 
-
-
-
-
-
-
 .rv-form {
-
-
 
   display: flex;
 
-
-
   flex-direction: column;
-
-
 
   gap: 16px;
 
-
-
   padding: 16px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-field {
 
-
-
   display: flex;
-
-
 
   flex-direction: column;
 
-
-
   gap: 4px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-field label {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   gap: 4px;
-
-
 
   color: #001c37;
 
-
-
   font-size: 13px;
-
-
 
   font-weight: 600;
 
-
-
   letter-spacing: 0.02em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-field label b {
 
-
-
   color: #ba1a1a;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-label-split {
 
-
-
   justify-content: space-between;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-label-split small {
 
-
-
   color: #41484d;
-
-
 
   font-size: 11px;
 
-
-
   font-weight: 700;
-
-
 
   letter-spacing: 0.04em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-input {
 
-
-
   position: relative;
-
-
 
   display: flex;
 
-
-
   align-items: center;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-input > svg {
 
-
-
   position: absolute;
-
-
 
   left: 12px;
 
-
-
   color: #41484d;
-
-
 
   pointer-events: none;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-input input,
 
-
-
 .rv-field textarea {
 
-
-
   width: 100%;
-
-
 
   border: 1.5px solid transparent;
 
-
-
   border-radius: 12px;
-
-
 
   background: #eff4ff;
 
-
-
   color: #001c37;
-
-
 
   font-family: 'Plus Jakarta Sans', sans-serif;
 
-
-
   font-size: 14px;
 
-
-
   line-height: 20px;
-
-
 
   outline: none;
 
-
-
   transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-input input {
 
-
-
   padding: 12px 16px 12px 40px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-input-plain input {
 
-
-
   padding-left: 16px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-field textarea {
 
-
-
   padding: 12px;
-
-
 
   resize: none;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-field textarea::placeholder,
 
-
-
 .rv-input input::placeholder {
 
-
-
   color: #71787e;
-
-
 
   opacity: 0.8;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-input input:focus,
 
-
-
 .rv-field textarea:focus {
-
-
 
   border-color: #01baef;
 
-
-
   background: #fff;
-
-
 
   box-shadow: 0 0 0 3px rgba(1, 186, 239, 0.15);
 
-
-
 }
-
-
-
-
-
-
 
 .rv-input input[aria-invalid='true'] {
 
-
-
   border-color: #ba1a1a;
-
-
 
   background: #fff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-phone-row {
 
-
-
   display: flex;
-
-
 
   gap: 8px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-phone-row .rv-input {
 
-
-
   flex: 1;
-
-
 
   min-width: 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-country {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   flex-shrink: 0;
 
-
-
   gap: 6px;
-
-
 
   padding: 0 12px;
 
-
-
   border-radius: 12px;
 
-
-
   background: #eff4ff;
-
-
 
   user-select: none;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-country span {
 
-
-
   font-size: 17px;
-
-
 
   line-height: 1;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-country strong {
 
-
-
   color: #001c37;
-
-
 
   font-size: 13px;
 
-
-
   font-weight: 600;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-hint {
 
-
-
   padding-left: 4px;
-
-
 
   color: #41484d;
 
-
-
   font-size: 11px;
 
-
-
   font-weight: 700;
-
-
 
   line-height: 14px;
 
-
-
   letter-spacing: 0.02em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-error {
 
-
-
   padding-left: 4px;
-
-
 
   color: #ba1a1a;
 
-
-
   font-size: 12px;
-
-
 
   font-weight: 600;
 
-
-
 }
-
-
-
-
-
-
 
 /* ---------- FARE ---------- */
 
-
-
-
-
-
-
 .rv-fare {
-
-
 
   display: flex;
 
-
-
   flex-direction: column;
-
-
 
   gap: 12px;
 
-
-
   padding: 16px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-fare-row {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   justify-content: space-between;
-
-
 
   gap: 8px;
 
-
-
   color: #41484d;
-
-
 
   font-size: 14px;
 
-
-
   line-height: 20px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-fare-row > span {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   gap: 4px;
-
-
 
   min-width: 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-fare-row > span svg {
 
-
-
   flex-shrink: 0;
-
-
 
   color: #71787e;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-fare-row strong {
 
-
-
   flex-shrink: 0;
-
-
 
   color: #001c37;
 
-
-
   font-size: 15px;
-
-
 
   font-weight: 600;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-promo {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   justify-content: space-between;
 
-
-
   gap: 8px;
-
-
 
   padding: 10px;
 
-
-
   border-radius: 8px;
-
-
 
   background: #eff4ff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-promo > div {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   gap: 6px;
-
-
 
   min-width: 0;
 
-
-
   color: #006685;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-promo > div > div {
 
-
-
   display: flex;
 
-
-
   flex-direction: column;
-
-
 
   min-width: 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-promo strong {
 
-
-
   overflow: hidden;
-
-
 
   color: #001c37;
 
-
-
   font-size: 13px;
-
-
 
   font-weight: 600;
 
-
-
   text-overflow: ellipsis;
-
-
 
   white-space: nowrap;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-promo small {
 
-
-
   overflow: hidden;
-
-
 
   color: #006685;
 
-
-
   font-size: 11px;
-
-
 
   font-weight: 700;
 
-
-
   letter-spacing: 0.02em;
-
-
 
   text-overflow: ellipsis;
 
-
-
   white-space: nowrap;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-promo b {
 
-
-
   flex-shrink: 0;
-
-
 
   color: #006685;
 
-
-
   font-size: 15px;
-
-
 
   font-weight: 700;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-fare hr {
 
-
-
   width: 100%;
 
-
-
   height: 1px;
-
-
 
   margin: 4px 0;
 
-
-
   border: 0;
-
-
 
   background: #dce9ff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-total {
 
-
-
   display: flex;
-
-
 
   align-items: baseline;
 
-
-
   justify-content: space-between;
-
-
 
   gap: 8px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-total > div {
 
-
-
   display: flex;
-
-
 
   flex-direction: column;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-total strong {
 
-
-
   color: #001c37;
-
-
 
   font-size: 15px;
 
-
-
   font-weight: 600;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-total small {
 
-
-
   color: #41484d;
-
-
 
   font-size: 11px;
 
-
-
   font-weight: 700;
-
-
 
   letter-spacing: 0.02em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-total > span {
 
-
-
   color: #00374e;
-
-
 
   font-size: 32px;
 
-
-
   line-height: 40px;
 
-
-
   font-weight: 800;
-
-
 
   letter-spacing: -0.03em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-notice {
 
-
-
   display: flex;
-
-
 
   align-items: flex-start;
 
-
-
   gap: 10px;
-
-
 
   margin-top: 4px;
 
-
-
   padding: 12px;
-
-
 
   border-radius: 8px;
 
-
-
   background: #e5eeff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-notice svg {
 
-
-
   flex-shrink: 0;
-
-
 
   margin-top: 2px;
 
-
-
   color: #006685;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-notice p {
 
-
-
   margin: 0;
-
-
 
   color: #001c37;
 
-
-
   font-size: 13px;
-
-
 
   line-height: 18px;
 
-
-
 }
-
-
-
-
-
-
 
 /* ---------- SUBMIT ---------- */
 
-
-
-
-
-
-
 .rv-submit {
-
-
 
   display: flex;
 
-
-
   flex-direction: column;
-
-
 
   gap: 4px;
 
-
-
   margin-top: 24px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-submit-error {
 
-
-
   margin-bottom: 8px;
-
-
 
   padding: 12px;
 
-
-
   border-radius: 12px;
-
-
 
   background: #ffdad6;
 
-
-
   color: #93000a;
-
-
 
   font-size: 13px;
 
-
-
   font-weight: 600;
-
-
 
   line-height: 18px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-submit-button,
 
-
-
 .rv-secondary-button {
-
-
 
   display: flex;
 
-
-
   align-items: center;
-
-
 
   justify-content: center;
 
-
-
   gap: 8px;
 
-
-
   width: 100%;
-
-
 
   height: 48px;
 
-
-
   border: 0;
-
-
 
   border-radius: 12px;
 
-
-
   font-family: 'Plus Jakarta Sans', sans-serif;
 
-
-
   font-size: 15px;
-
-
 
   font-weight: 600;
 
-
-
   letter-spacing: 0.01em;
 
-
-
   cursor: pointer;
-
-
 
   transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-submit-button {
 
-
-
   background: #0b4f6c;
-
-
 
   color: #fff;
 
-
-
   box-shadow: 0 4px 12px rgba(11, 79, 108, 0.25);
 
-
-
 }
-
-
-
-
-
-
 
 .rv-submit-button:active:not(:disabled) {
 
-
-
   background: #083b52;
-
-
 
   transform: scale(0.99);
 
-
-
 }
-
-
-
-
-
-
 
 .rv-submit-button:disabled {
 
-
-
   opacity: 0.7;
-
-
 
   cursor: wait;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-secondary-button {
 
-
-
   background: #e5eeff;
-
-
 
   color: #001c37;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-secondary-button:active {
 
-
-
   background: #dce9ff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-secure {
 
-
-
   display: flex;
 
-
-
   align-items: center;
-
-
 
   justify-content: center;
 
-
-
   gap: 6px;
-
-
 
   padding: 4px 0;
 
-
-
   color: #41484d;
-
-
 
   font-size: 11px;
 
-
-
   font-weight: 700;
-
-
 
   letter-spacing: 0.04em;
 
-
-
 }
-
-
-
-
-
-
 
 /* ---------- CONFIRMATION SHEET ---------- */
 
-
-
-
-
-
-
 .rv-sheet {
-
-
 
   --background: #fff;
 
-
-
   --border-radius: 24px 24px 0 0;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-content {
 
-
-
   display: flex;
-
-
 
   flex-direction: column;
 
-
-
   align-items: center;
-
-
 
   gap: 0;
 
-
-
   padding: 24px 20px calc(24px + env(safe-area-inset-bottom, 0px));
-
-
 
   font-family: 'Plus Jakarta Sans', sans-serif;
 
-
-
   text-align: center;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-success {
 
-
-
   display: grid;
 
-
-
   place-items: center;
-
-
 
   width: 64px;
 
-
-
   height: 64px;
-
-
 
   margin-bottom: 12px;
 
-
-
   border-radius: 50%;
-
-
 
   background: #e5eeff;
 
-
-
   color: #006685;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-content h3 {
 
-
-
   margin: 0;
 
-
-
   color: #00374e;
-
-
 
   font-size: 22px;
 
-
-
   line-height: 30px;
 
-
-
   font-weight: 700;
-
-
 
   letter-spacing: -0.02em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-sub {
 
-
-
   margin: 4px 0 0;
-
-
 
   color: #41484d;
 
-
-
   font-size: 13px;
-
-
 
   line-height: 18px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-reference {
 
-
-
   display: flex;
 
-
-
   align-items: center;
-
-
 
   gap: 8px;
 
-
-
   margin-top: 16px;
-
-
 
   padding: 8px 16px;
 
-
-
   border-radius: 12px;
-
-
 
   background: #eff4ff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-reference small {
 
-
-
   color: #41484d;
-
-
 
   font-size: 11px;
 
-
-
   font-weight: 700;
-
-
 
   letter-spacing: 0.06em;
 
-
-
   text-transform: uppercase;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-reference strong {
 
-
-
   color: #00374e;
-
-
 
   font-size: 15px;
 
-
-
   font-weight: 700;
-
-
 
   letter-spacing: 0.02em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-reference button {
 
-
-
   display: grid;
-
-
 
   place-items: center;
 
-
-
   padding: 0;
 
-
-
   border: 0;
-
-
 
   background: none;
 
-
-
   color: #006685;
-
-
 
   cursor: pointer;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-card {
 
-
-
   display: flex;
-
-
 
   flex-direction: column;
 
-
-
   gap: 10px;
 
-
-
   width: 100%;
-
-
 
   margin: 16px 0 24px;
 
-
-
   padding: 16px;
-
-
 
   border-radius: 12px;
 
-
-
   background: #eff4ff;
-
-
 
   text-align: left;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-card > div:first-child {
 
-
-
   display: flex;
-
-
 
   align-items: flex-start;
 
-
-
   gap: 10px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-card > div:first-child svg {
 
-
-
   flex-shrink: 0;
-
-
 
   margin-top: 2px;
 
-
-
   color: #006685;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-card p {
 
-
-
   margin: 0;
-
-
 
   color: #001c37;
 
-
-
   font-size: 13px;
-
-
 
   line-height: 18px;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-card hr {
 
-
-
   width: 100%;
-
-
 
   height: 1px;
 
-
-
   margin: 0;
-
-
 
   border: 0;
 
-
-
   background: #dce9ff;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-window {
 
-
-
   display: flex;
-
-
 
   align-items: center;
 
-
-
   justify-content: space-between;
-
-
 
   color: #41484d;
 
-
-
   font-size: 11px;
-
-
 
   font-weight: 700;
 
-
-
   letter-spacing: 0.04em;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-window strong {
 
-
-
   color: #00374e;
-
-
 
   font-weight: 800;
 
-
-
 }
-
-
-
-
-
-
 
 .rv-sheet-content .rv-secondary-button {
 
-
-
   margin-top: 8px;
 
-
-
 }
-
-
 
 /* Updated reservation form controls */
 
@@ -3752,87 +1650,260 @@
 
 }
 
-
 /* Calendar and reservation visual refresh */
+
 .rv-main { max-width: 620px; padding: 18px 16px calc(34px + env(safe-area-inset-bottom)); }
+
 .rv-card { border: 1px solid #e7eef2; border-radius: 18px; box-shadow: 0 7px 24px rgba(17,55,75,.055); }
+
 .rv-summary { gap: 14px; padding: 14px; }
+
 .rv-summary-image { width: 94px; height: 94px; border-radius: 14px; }
+
 .rv-summary-info h2 { font-weight: 850; letter-spacing: -.025em; }
+
 .rv-section { margin-top: 22px; }
+
 .rv-section-heading { margin-bottom: 11px; }
+
 .rv-section-heading h3 { font-weight: 850; }
+
 .rv-stay { gap: 14px; padding: 15px; }
+
 .rv-field label { color: #24485a; font-size: 12px; font-weight: 800; }
+
 .rv-text-input, .rv-field input:not([type="checkbox"]):not([type="radio"]), .rv-field select, .rv-field textarea {
+
   border: 1px solid #dce7ec; border-radius: 11px; background: #fbfdfe;
+
 }
+
 .rv-text-input:focus, .rv-field input:focus, .rv-field select:focus, .rv-field textarea:focus {
+
   outline: 0; border-color: #07839c; box-shadow: 0 0 0 3px rgba(7,131,156,.10);
+
 }
+
 .rv-submit-button { border-radius: 13px; min-height: 48px; box-shadow: 0 8px 18px rgba(11,79,108,.16); }
+
 .rv-error, .rv-form-error { border-radius: 12px; }
 
 /* Custom booking calendar */
+
 .rv-calendar {
+
   width: 100%; padding: 14px; border: 1px solid #e0eaf0; border-radius: 15px;
+
   background: linear-gradient(180deg,#fff 0%,#fbfdfe 100%);
+
 }
+
 .rv-calendar-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+
 .rv-calendar-header > div:first-child { display:flex; flex-direction:column; gap:4px; min-width:0; }
+
 .rv-calendar-header strong { color:#17384c; font-size:15px; font-weight:850; }
+
 .rv-calendar-header small { color:#748895; font-size:10px; line-height:1.4; }
+
 .rv-calendar-nav { display:flex; gap:6px; }
+
 .rv-calendar-nav button {
+
   display:grid; place-items:center; width:32px; height:32px; border:1px solid #dce8ed;
+
   border-radius:10px; background:#fff; color:#176078; cursor:pointer;
+
 }
+
 .rv-calendar-nav button:disabled { opacity:.35; cursor:not-allowed; }
+
 .rv-calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
+
 .rv-calendar-weekdays { margin-bottom:6px; }
+
 .rv-calendar-weekdays span { padding:5px 0; color:#83939c; text-align:center; font-size:10px; font-weight:800; }
+
 .rv-calendar-day {
+
   position:relative; display:flex; align-items:center; justify-content:center; min-width:0;
+
   aspect-ratio:1/1; padding:0; border:1px solid transparent; border-radius:11px;
+
   background:#f0f7f8; color:#24495a; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer;
+
 }
+
 .rv-calendar-day:hover:not(:disabled) { border-color:#83cbd3; background:#e6f5f5; }
+
 .rv-calendar-day.is-selected { border-color:#087b9c; background:#087b9c; color:#fff; box-shadow:0 4px 10px rgba(8,123,156,.2); }
+
 .rv-calendar-day.is-booked { background:#fff0ef; color:#b54743; border-color:#f4d4d1; }
+
 .rv-calendar-day.is-booked.is-selected { background:#087b9c; border-color:#087b9c; color:#fff; }
+
 .rv-calendar-day.is-disabled { opacity:.48; cursor:not-allowed; text-decoration:line-through; }
+
 .rv-calendar-day i { position:absolute; right:3px; top:2px; min-width:13px; height:13px; padding:0 3px; border-radius:20px; background:#c94e48; color:#fff; font-size:8px; font-style:normal; line-height:13px; text-align:center; }
+
 .rv-calendar-day.is-selected i { background:#fff; color:#087b9c; }
+
 .rv-calendar-empty { aspect-ratio:1/1; }
+
 .rv-calendar-legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:12px; padding-top:10px; border-top:1px solid #edf1f3; }
+
 .rv-calendar-legend span { display:inline-flex; align-items:center; gap:5px; color:#71838d; font-size:10px; font-weight:700; }
+
 .rv-calendar-legend i { width:8px; height:8px; border-radius:50%; background:#c7e8df; }
+
 .rv-calendar-legend .booked-dot { background:#d66a63; }
+
 .rv-calendar-legend .selected-dot { background:#087b9c; }
+
 .rv-schedule-warning { padding:10px 12px; border-radius:10px; background:#fff4e9; color:#a64b12; font-size:11px; line-height:1.5; }
+
 .rv-summary-gallery { position:relative; overflow:hidden; }
+
 .rv-summary-gallery img { display:block; width:100%; height:100%; object-fit:cover; }
+
 .rv-photo-arrow { position:absolute; top:50%; z-index:2; display:grid; place-items:center; width:28px; height:28px; padding:0; border:0; border-radius:50%; background:rgba(255,255,255,.94); color:#12384f; font-size:19px; line-height:1; cursor:pointer; transform:translateY(-50%); }
-.rv-photo-arrow.previous { left:5px; } .rv-photo-arrow.next { right:5px; }
+
+.rv-photo-arrow\.previous { left:5px; } .rv-photo-arrow\.next { right:5px; }
+
 .rv-photo-count { position:absolute; right:6px; bottom:6px; padding:3px 7px; border-radius:20px; background:rgba(0,28,55,.76); color:#fff; font-size:9px; font-weight:800; }
+
 .rv-package-details { margin:14px 0 18px; padding:16px; border:1px solid #e3edf1; border-radius:16px; background:#fff; }
+
 .rv-package-details-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+
 .rv-package-details-heading small { display:block; margin-bottom:4px; color:#087b9c; font-size:10px; font-weight:850; letter-spacing:.08em; }
+
 .rv-package-details-heading h3 { margin:0; color:#17384c; font-size:16px; font-weight:850; }
+
 .rv-package-details-heading > span { flex:0 0 auto; padding:5px 8px; border-radius:20px; background:#eaf5f8; color:#087b9c; font-size:10px; font-weight:800; }
+
 .rv-package-description { margin:12px 0 0; color:#5f7480; font-size:13px; line-height:1.65; white-space:pre-wrap; }
+
 .rv-package-amenities, .rv-package-pool { margin-top:14px; }
+
 .rv-package-amenities > strong, .rv-package-pool > strong { display:block; margin-bottom:8px; color:#17384c; font-size:12px; font-weight:850; }
+
 .rv-package-amenities > div { display:flex; flex-wrap:wrap; gap:7px; }
+
 .rv-package-amenities span { padding:6px 9px; border:1px solid #dceaf0; border-radius:20px; background:#f8fbfc; color:#385466; font-size:11px; font-weight:700; }
+
 .rv-package-pool { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding-top:12px; border-top:1px solid #e8eef2; }
+
 .rv-package-pool > strong { margin:0; }
+
 .rv-package-pool > span { color:#087b9c; font-size:12px; font-weight:800; }
+
 @media (max-width:520px) {
+
   .rv-main { padding:12px 12px calc(30px + env(safe-area-inset-bottom)); }
+
   .rv-calendar { padding:11px; }
+
   .rv-calendar-grid { gap:4px; }
+
   .rv-calendar-day { border-radius:9px; font-size:11px; }
+
   .rv-summary-image { width:82px; height:82px; }
+
   .rv-package-details { padding:13px; }
+
+}
+
+
+/* Weather at the selected resort */
+.rv-resort-weather {
+  margin: 14px 0 18px;
+  padding: 15px 16px;
+  border: 1px solid #d9e9ed;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #eef8fa 0%, #f8fcfd 100%);
+  color: #17384c;
+}
+.rv-resort-weather-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rv-resort-weather-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.rv-resort-weather-eyebrow {
+  color: #087b91;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .09em;
+}
+.rv-resort-weather-heading strong {
+  overflow: hidden;
+  color: #17384c;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rv-resort-weather-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #d9f0f4;
+  color: #087b91;
+  font-size: 23px;
+}
+.rv-resort-weather-reading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.rv-resort-weather-reading strong {
+  color: #073b53;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 850;
+}
+.rv-resort-weather-reading span {
+  color: #526b78;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+.rv-resort-weather-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #d9e9ed;
+}
+.rv-resort-weather-metrics span {
+  color: #647b86;
+  font-size: 11px;
+}
+.rv-resort-weather-metrics b {
+  margin-left: 3px;
+  color: #17384c;
+}
+.rv-resort-weather > small {
+  display: block;
+  margin-top: 10px;
+  color: #718791;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.rv-resort-weather-message {
+  margin: 10px 0 0;
+  color: #647b86;
+  font-size: 12px;
+  line-height: 1.5;
 }
