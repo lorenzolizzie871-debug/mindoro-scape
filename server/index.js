@@ -1025,6 +1025,361 @@ app.post(
   }
 );
 
+
+ // ==================================================
+ // 12. OPENWEATHER API INTEGRATION
+ // ==================================================
+
+const OPENWEATHER_API_KEY = String(
+  process.env.OPENWEATHER_API_KEY || ""
+).trim();
+
+const OPENWEATHER_BASE_URL =
+  "https://api.openweathermap.org/data/2.5";
+
+// ==================================================
+// WEATHER LOCATION VALIDATION
+// ==================================================
+
+function getWeatherParams(req) {
+  const { city, lat, lon } = req.query;
+
+  if (lat !== undefined || lon !== undefined) {
+    if (lat === undefined || lon === undefined) {
+      return null;
+    }
+
+    const latitude = Number(lat);
+    const longitude = Number(lon);
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return null;
+    }
+
+    return {
+      lat: latitude,
+      lon: longitude,
+    };
+  }
+
+  const location = String(
+    city || "Victoria,PH"
+  ).trim();
+
+  if (!location || location.length > 100) {
+    return null;
+  }
+
+  return { q: location };
+}
+
+// ==================================================
+// WEATHER ERROR HANDLER
+// ==================================================
+
+function getWeatherErrorDetails(error) {
+  return {
+    message: error.message || "Unknown request error",
+    code: error.code || null,
+    status: error.response?.status || null,
+    providerMessage:
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      null,
+  };
+}
+
+function sendWeatherError(res, error, operation) {
+  const details = getWeatherErrorDetails(error);
+
+  console.error(`[WEATHER] ${operation} failed:`, details);
+
+  if (error.response?.status === 401) {
+    return res.status(502).json({
+      success: false,
+      code: "OPENWEATHER_UNAUTHORIZED",
+      message:
+        "OpenWeather rejected the API key. Verify the key and wait for activation.",
+      providerStatus: 401,
+      providerMessage: details.providerMessage,
+    });
+  }
+
+  if (error.response?.status === 404) {
+    return res.status(404).json({
+      success: false,
+      code: "WEATHER_LOCATION_NOT_FOUND",
+      message: "Weather location was not found.",
+      providerMessage: details.providerMessage,
+    });
+  }
+
+  if (error.response?.status === 429) {
+    return res.status(503).json({
+      success: false,
+      code: "OPENWEATHER_RATE_LIMIT",
+      message:
+        "OpenWeather request limit reached. Please try again later.",
+      providerStatus: 429,
+    });
+  }
+
+  if (error.code === "ECONNABORTED") {
+    return res.status(504).json({
+      success: false,
+      code: "WEATHER_REQUEST_TIMEOUT",
+      message: "Weather provider took too long to respond.",
+    });
+  }
+
+  if (error.response) {
+    return res.status(502).json({
+      success: false,
+      code: "OPENWEATHER_REQUEST_FAILED",
+      message: "OpenWeather could not complete the request.",
+      providerStatus: error.response.status,
+      providerMessage: details.providerMessage,
+    });
+  }
+
+  return res.status(502).json({
+    success: false,
+    code: "WEATHER_CONNECTION_FAILED",
+    message:
+      "Unable to connect to OpenWeather. Check the server internet connection.",
+    errorCode: details.code,
+  });
+}
+
+// ==================================================
+// CURRENT WEATHER
+// ==================================================
+
+app.get("/api/weather/current", async (req, res) => {
+  console.log("[WEATHER] Current weather route reached.");
+
+  try {
+    if (!OPENWEATHER_API_KEY) {
+      console.error("[WEATHER] API key is missing.");
+
+      return res.status(503).json({
+        success: false,
+        code: "WEATHER_API_KEY_MISSING",
+        message: "Weather API key is not configured.",
+      });
+    }
+
+    const location = getWeatherParams(req);
+
+    if (!location) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_WEATHER_LOCATION",
+        message: "Invalid weather location.",
+      });
+    }
+
+    console.log(
+      "[WEATHER] Requesting current weather from OpenWeather..."
+    );
+
+    const response = await axios.get(
+      `${OPENWEATHER_BASE_URL}/weather`,
+      {
+        params: {
+          ...location,
+          appid: OPENWEATHER_API_KEY,
+          units: "metric",
+        },
+        timeout: 15000,
+      }
+    );
+
+    const weather = response.data;
+
+    console.log(
+      `[WEATHER] Current weather received for ${weather.name}.`
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        location: weather.name,
+        country: weather.sys?.country,
+        temperature: weather.main?.temp,
+        feelsLike: weather.main?.feels_like,
+        humidity: weather.main?.humidity,
+        pressure: weather.main?.pressure,
+        condition: weather.weather?.[0]?.main,
+        description: weather.weather?.[0]?.description,
+        icon: weather.weather?.[0]?.icon,
+        windSpeed: weather.wind?.speed,
+        windDirection: weather.wind?.deg,
+        clouds: weather.clouds?.all,
+        rain: weather.rain?.["1h"] || 0,
+        sunrise: weather.sys?.sunrise,
+        sunset: weather.sys?.sunset,
+        timestamp: weather.dt,
+      },
+    });
+
+  } catch (error) {
+    return sendWeatherError(
+      res,
+      error,
+      "Current weather"
+    );
+  }
+});
+
+// ==================================================
+// FIVE-DAY WEATHER FORECAST
+// ==================================================
+
+app.get("/api/weather/forecast", async (req, res) => {
+  console.log("[WEATHER] Forecast route reached.");
+
+  try {
+    if (!OPENWEATHER_API_KEY) {
+      return res.status(503).json({
+        success: false,
+        code: "WEATHER_API_KEY_MISSING",
+        message: "Weather API key is not configured.",
+      });
+    }
+
+    const location = getWeatherParams(req);
+
+    if (!location) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_WEATHER_LOCATION",
+        message: "Invalid weather location.",
+      });
+    }
+
+    console.log(
+      "[WEATHER] Requesting forecast from OpenWeather..."
+    );
+
+    const response = await axios.get(
+      `${OPENWEATHER_BASE_URL}/forecast`,
+      {
+        params: {
+          ...location,
+          appid: OPENWEATHER_API_KEY,
+          units: "metric",
+        },
+        timeout: 15000,
+      }
+    );
+
+    const forecast = response.data;
+
+    console.log(
+      `[WEATHER] Forecast received for ${forecast.city?.name}.`
+    );
+
+    return res.json({
+      success: true,
+      location: forecast.city?.name,
+      country: forecast.city?.country,
+      timezone: forecast.city?.timezone,
+
+      data: (forecast.list || []).map((item) => ({
+        dateTime: item.dt_txt,
+        timestamp: item.dt,
+        temperature: item.main?.temp,
+        feelsLike: item.main?.feels_like,
+        humidity: item.main?.humidity,
+        condition: item.weather?.[0]?.main,
+        description: item.weather?.[0]?.description,
+        icon: item.weather?.[0]?.icon,
+        windSpeed: item.wind?.speed,
+        rainProbability: item.pop,
+        rainfall: item.rain?.["3h"] || 0,
+      })),
+    });
+
+  } catch (error) {
+    return sendWeatherError(
+      res,
+      error,
+      "Forecast"
+    );
+  }
+});
+
+// ==================================================
+// WEATHER API CONFIGURATION CHECK
+// ==================================================
+
+app.get("/api/weather/health", (req, res) => {
+  return res.json({
+    success: true,
+    configured: Boolean(OPENWEATHER_API_KEY),
+    provider: "OpenWeather",
+    message: OPENWEATHER_API_KEY
+      ? "Weather API key is configured."
+      : "Weather API key is missing.",
+  });
+});
+
+// ==================================================
+// ACTUAL OPENWEATHER CONNECTION TEST
+// ==================================================
+
+app.get("/api/weather/test-connection", async (req, res) => {
+  console.log("[WEATHER] Provider connection test requested.");
+
+  if (!OPENWEATHER_API_KEY) {
+    return res.status(503).json({
+      success: false,
+      code: "WEATHER_API_KEY_MISSING",
+      message: "Weather API key is not configured.",
+    });
+  }
+
+  try {
+    const response = await axios.get(
+      `${OPENWEATHER_BASE_URL}/weather`,
+      {
+        params: {
+          q: "Victoria,PH",
+          appid: OPENWEATHER_API_KEY,
+          units: "metric",
+        },
+        timeout: 15000,
+      }
+    );
+
+    return res.json({
+      success: true,
+      message:
+        "OpenWeather authentication and request succeeded.",
+      location: response.data.name,
+      country: response.data.sys?.country,
+      temperature: response.data.main?.temp,
+      condition:
+        response.data.weather?.[0]?.description,
+    });
+
+  } catch (error) {
+    return sendWeatherError(
+      res,
+      error,
+      "Connection test"
+    );
+  }
+});
+
 // ==================================================
 // 12. NOT FOUND HANDLER
 // ==================================================

@@ -186,6 +186,12 @@ type ResortDoc = {
 
   bookingSchedule?: BookingSchedule;
 
+  usageType?: 'swimming' | 'event' | 'overnight';
+
+  eventTypes?: string[];
+
+  reservationMode?: 'day_use' | 'event_booking' | 'overnight_stay';
+
   status?: string;
 
 };
@@ -343,6 +349,12 @@ const Reservation: React.FC = () => {
   const [checkOut, setCheckOut] = useState(() => plusDays(localDate(new Date()), 1));
 
   const [bookingSession, setBookingSession] = useState<BookingSessionKey>('day');
+
+  const [eventType, setEventType] = useState('');
+
+  const [eventStartTime, setEventStartTime] = useState('10:00');
+
+  const [eventEndTime, setEventEndTime] = useState('16:00');
 
   const [extensionHours, setExtensionHours] = useState(0);
 
@@ -518,7 +530,15 @@ const Reservation: React.FC = () => {
 
   const selectedSessionConfig = bookingSchedule.sessions[bookingSession];
 
-  const nights = rate?.unit === 'night' ? stayDays(checkIn, checkOut) : 1;
+  const usageType: 'swimming' | 'event' | 'overnight' =
+    resort?.usageType ||
+    (resort?.reservationMode === 'event_booking'
+      ? 'event'
+      : resort?.reservationMode === 'overnight_stay'
+        ? 'overnight'
+        : 'swimming');
+
+  const nights = usageType === 'overnight' && (rate?.unit === 'night' || rate?.unit === 'day') ? stayDays(checkIn, checkOut) : 1;
 
   useEffect(() => {
     if (!availableBookingSessions.includes(bookingSession) && availableBookingSessions.length > 0) {
@@ -713,6 +733,17 @@ const Reservation: React.FC = () => {
 
   const image = resort?.imageUrls?.[0] || resort?.imageUrl || '';
 
+  const acceptedEventTypes = Array.isArray(resort?.eventTypes) && resort!.eventTypes!.length
+    ? resort!.eventTypes!.filter(Boolean)
+    : ['Birthday Party', 'Debut', 'Wedding', 'Anniversary', 'Family Reunion', 'Team Building', 'Company Event', 'Other Private Event'];
+
+  useEffect(() => {
+    if (usageType === 'event' && acceptedEventTypes.length > 0 &&
+        !acceptedEventTypes.includes(eventType)) {
+      setEventType(acceptedEventTypes[0]);
+    }
+  }, [usageType, acceptedEventTypes.join('|'), eventType]);
+
 
 
   const toggleService = (service: AddOn) => {
@@ -737,7 +768,7 @@ const Reservation: React.FC = () => {
 
     setCheckIn(value);
 
-    if (rate?.unit !== 'night' || checkOut < value) setCheckOut(value);
+    if (usageType !== 'overnight' || rate?.unit !== 'night' || checkOut < value) setCheckOut(value);
 
   };
 
@@ -805,12 +836,25 @@ const Reservation: React.FC = () => {
 
     }
 
-    if (checkOut < checkIn) {
+    if (usageType === 'overnight' && rate.unit === 'night' && checkOut <= checkIn) {
 
-      setError('End date cannot be earlier than start date.');
+      setError('Check-out date must be after the check-in date.');
 
       return;
 
+    }
+
+    if (usageType === 'event') {
+      if (!eventType || !acceptedEventTypes.includes(eventType)) {
+        setError('Please select one of the event types accepted by this venue.');
+        return;
+      }
+
+      const validTime = (value: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+      if (!validTime(eventStartTime) || !validTime(eventEndTime) || eventStartTime >= eventEndTime) {
+        setError('Please provide a valid event start and end time.');
+        return;
+      }
     }
 
     if (!isSelectedDateAvailable) {
@@ -818,7 +862,7 @@ const Reservation: React.FC = () => {
       return;
     }
 
-    if (!selectedSessionConfig.enabled) {
+    if (usageType === 'swimming' && !selectedSessionConfig.enabled) {
       setError('The selected booking session is not available. Please choose another session.');
       return;
     }
@@ -873,6 +917,25 @@ const Reservation: React.FC = () => {
 
         resortLocation,
 
+        usageType,
+
+        reservationMode:
+          usageType === 'event'
+            ? 'event_booking'
+            : usageType === 'overnight'
+              ? 'overnight_stay'
+              : 'day_use',
+
+        eventDetails: usageType === 'event'
+          ? {
+              eventType,
+              eventDate: checkIn,
+              startTime: eventStartTime,
+              endTime: eventEndTime,
+              expectedGuests: adults + children,
+            }
+          : null,
+
         rateIndex,
 
         rate: {
@@ -905,12 +968,14 @@ const Reservation: React.FC = () => {
 
         bookingDate: checkIn,
 
-        bookingSession: {
-          key: bookingSession,
-          label: bookingSession === 'day' ? 'Day session' : 'Night session',
-          startTime: selectedSessionConfig.startTime,
-          endTime: selectedSessionConfig.endTime,
-        },
+        bookingSession: usageType === 'swimming'
+          ? {
+              key: bookingSession,
+              label: bookingSession === 'day' ? 'Day session' : 'Night session',
+              startTime: selectedSessionConfig.startTime,
+              endTime: selectedSessionConfig.endTime,
+            }
+          : null,
 
         extension: {
           hours: extensionHours,
@@ -1134,6 +1199,13 @@ const Reservation: React.FC = () => {
               <strong>{rate.label || `${rate.unit} rate`}</strong>
 
               <div className="rv-summary-tags">
+                <span>
+                  {usageType === 'event'
+                    ? 'Event venue reservation'
+                    : usageType === 'overnight'
+                      ? 'Overnight stay'
+                      : 'Swimming / day use'}
+                </span>
 
                 <span>{php(rate.price)} {unitLabel(rate.unit)}</span>
 
@@ -1155,26 +1227,62 @@ const Reservation: React.FC = () => {
 
                 <div className="rv-field">
 
-                  <label htmlFor="checkin">Start date</label>
+                  <label htmlFor="checkin">
+                    {usageType === 'event' ? 'Event date' : usageType === 'overnight' ? 'Check-in date' : 'Swimming / visit date'}
+                  </label>
 
                   <input id="checkin" className="rv-date-input" type="date" min={localDate(new Date())} value={checkIn} onChange={e => changeDate(e.target.value)} required />
 
                 </div>
 
-                {rate.unit === 'night' && (
+                {usageType === 'overnight' && rate.unit === 'night' && (
                   <div className="rv-field">
 
-                    <label htmlFor="checkout">End date</label>
+                    <label htmlFor="checkout">Check-out date</label>
 
                     <input id="checkout" className="rv-date-input" type="date" min={checkIn} value={checkOut} onChange={e => setCheckOut(e.target.value)} required />
 
                   </div>
                 )}
 
-                <p className="rv-hint">Dates are used to estimate the booking duration. The resort owner must confirm actual availability.</p>
+                <p className="rv-hint">
+                  {usageType === 'event'
+                    ? 'Choose the date and event details. The venue owner will confirm the event schedule and availability.'
+                    : usageType === 'overnight'
+                      ? 'Choose your check-in and check-out dates for the overnight stay.'
+                      : 'Choose the date of your swimming visit. Day-use reservations do not require an overnight check-out date.'}
+                </p>
+
+                {usageType === 'event' && (
+                  <div className="rv-event-booking-fields" style={{ display: 'grid', gap: 12, marginTop: 14 }}>
+                    <div className="rv-field">
+                      <label htmlFor="event-type">Type of event *</label>
+                      <select
+                        id="event-type"
+                        className="rv-text-input"
+                        value={eventType}
+                        onChange={event => setEventType(event.target.value)}
+                        required
+                      >
+                        {acceptedEventTypes.map(type => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="rv-field">
+                      <label htmlFor="event-start">Preferred start time *</label>
+                      <input id="event-start" className="rv-text-input" type="time" value={eventStartTime} onChange={event => setEventStartTime(event.target.value)} required />
+                    </div>
+                    <div className="rv-field">
+                      <label htmlFor="event-end">Preferred end time *</label>
+                      <input id="event-end" className="rv-text-input" type="time" value={eventEndTime} onChange={event => setEventEndTime(event.target.value)} required />
+                    </div>
+                    <p className="rv-hint">Your event request includes the selected event type, date, preferred time, and guest count. Final schedule and venue availability require owner confirmation.</p>
+                  </div>
+                )}
 
                 <div className="rv-owner-schedule-summary">
-                  <strong>Owner's booking availability</strong>
+                  <strong>Owner's {usageType === 'event' ? 'event' : usageType === 'overnight' ? 'stay' : 'swimming'} availability</strong>
                   <div className="rv-schedule-days-inline">
                     {BOOKING_DAYS.map((day) => (
                       <span className={bookingSchedule.availableDays.includes(day.value) ? 'is-available' : 'is-unavailable'} key={day.value}>
@@ -1187,8 +1295,9 @@ const Reservation: React.FC = () => {
                   )}
                 </div>
 
+                {usageType === 'swimming' && (
                 <div className="rv-field rv-session-field">
-                  <label>Choose your session</label>
+                  <label>Choose your swimming session</label>
                   <div className="rv-session-choice-grid">
                     {(['day', 'night'] as BookingSessionKey[]).map((session) => {
                       const config = bookingSchedule.sessions[session];
@@ -1216,8 +1325,9 @@ const Reservation: React.FC = () => {
                     <p className="rv-schedule-warning">The owner has not enabled any booking session for this listing.</p>
                   )}
                 </div>
+                )}
 
-                {bookingSchedule.extension.enabled && (
+                {usageType === 'swimming' && bookingSchedule.extension.enabled && (
                   <div className="rv-extension-picker">
                     <div>
                       <strong>Need extra time?</strong>

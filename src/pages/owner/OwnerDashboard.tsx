@@ -152,6 +152,9 @@ type OwnerPackage = {
   name: string;
   resortType?: 'Private Resort' | 'Public Resort' | 'Beach Resort' | 'Nature Resort' | 'Family Resort';
   category?: string;
+  usageType?: 'swimming' | 'event' | 'overnight';
+  eventTypes?: string[];
+  reservationMode?: 'day_use' | 'event_booking' | 'overnight_stay';
   price: number;
   description?: string;
   amenities?: string[];
@@ -213,6 +216,41 @@ type LocationSuggestion = {
   lon: string;
 };
 
+type ListingUsageType = 'swimming' | 'event' | 'overnight';
+
+const LISTING_USAGE_OPTIONS: Array<{
+  value: ListingUsageType;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: 'swimming',
+    label: 'Swimming / Day Use',
+    description: 'For guests who will swim or use the resort facilities without overnight stay.',
+  },
+  {
+    value: 'event',
+    label: 'Event Venue',
+    description: 'For birthdays, weddings, reunions, team building, and other private events.',
+  },
+  {
+    value: 'overnight',
+    label: 'Overnight Accommodation',
+    description: 'For guests booking rooms, villas, cottages, or overnight stays.',
+  },
+];
+
+const EVENT_TYPE_OPTIONS = [
+  'Birthday Party',
+  'Debut',
+  'Wedding',
+  'Anniversary',
+  'Family Reunion',
+  'Team Building',
+  'Company Event',
+  'Other Private Event',
+];
+
 // Convert a compressed image into a Base64 data URL for Firestore.
 const convertImageToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -260,7 +298,9 @@ const OwnerDashboard: React.FC = () => {
   // Accommodation details and flexible pricing.
   const [pkgName, setPkgName] = useState('');
   const [pkgResortType, setPkgResortType] = useState<'Private Resort' | 'Public Resort' | 'Beach Resort' | 'Nature Resort' | 'Family Resort'>('Beach Resort');
-  const [pricingOptions, setPricingOptions] = useState<PricingOption[]>([{ id: 'rate-1', unit: 'night', price: 0, durationHours: 12, guestCapacity: 2 }]);
+  const [usageType, setUsageType] = useState<ListingUsageType>('swimming');
+  const [eventTypes, setEventTypes] = useState<string[]>(['Birthday Party']);
+  const [pricingOptions, setPricingOptions] = useState<PricingOption[]>([{ id: 'rate-1', unit: 'person', price: 0, guestCapacity: 1 }]);
 
 
   const [pkgDesc, setPkgDesc] = useState('');
@@ -309,7 +349,23 @@ const OwnerDashboard: React.FC = () => {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
 
+  // Weather is fetched live from the selected accommodation coordinates.
+  const [accommodationWeather, setAccommodationWeather] = useState<any>(null);
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [weatherError, setWeatherError] = useState('');
+  const [weatherRefresh, setWeatherRefresh] = useState(0);
+  const weatherApiBase =
+    (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000';
+
   const [formError, setFormError] = useState('');
+  const [feedbackModal, setFeedbackModal] = useState<{
+    title: string;
+    message: string;
+    variant: 'success' | 'error' | 'confirm';
+    confirmLabel?: string;
+    onConfirm?: () => void | Promise<void>;
+  } | null>(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
 
   // Map references
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -669,6 +725,107 @@ const OwnerDashboard: React.FC = () => {
     };
   }, [showAddModal]);
 
+
+  // =========================================================
+  // LIVE WEATHER FOR THE SELECTED ACCOMMODATION LOCATION
+  // Existing backend route: GET /api/weather/current?lat=...&lon=...
+  // =========================================================
+
+  useEffect(() => {
+    if (!showAddModal || latitude === null || longitude === null) {
+      setAccommodationWeather(null);
+      setWeatherError('');
+      setWeatherLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadWeather = async () => {
+      setWeatherLoading(true);
+      setWeatherError('');
+
+      try {
+        const params = new URLSearchParams({
+          lat: String(latitude),
+          lon: String(longitude),
+        });
+
+        const response = await fetch(
+          `${weatherApiBase}/api/weather/current?${params.toString()}`,
+          { signal: controller.signal }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || result?.success !== true || !result?.data) {
+          const message =
+            result?.message ||
+            (response.status === 401
+              ? 'The weather API key is not active yet. Please try again later.'
+              : 'Weather information is currently unavailable.');
+          throw new Error(message);
+        }
+
+        setAccommodationWeather(result.data);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setAccommodationWeather(null);
+        setWeatherError(
+          error instanceof Error
+            ? error.message
+            : 'Unable to retrieve current weather.'
+        );
+      } finally {
+        if (!controller.signal.aborted) setWeatherLoading(false);
+      }
+    };
+
+    void loadWeather();
+
+    return () => controller.abort();
+  }, [showAddModal, latitude, longitude, weatherRefresh, weatherApiBase]);
+
+  const getAccommodationWeatherAdvisory = (weather: any) => {
+    const condition = String(weather?.condition || '').toLowerCase();
+    const description = String(weather?.description || '').toLowerCase();
+    const wind = Number(weather?.windSpeed || 0);
+    const rain = Number(weather?.rain || 0);
+
+    if (
+      condition.includes('thunderstorm') ||
+      description.includes('thunderstorm') ||
+      rain >= 7.5 ||
+      wind >= 13.9
+    ) {
+      return {
+        level: 'warning',
+        title: 'Severe Weather Caution',
+        message: 'Thunderstorms, heavy rainfall, or strong winds may affect outdoor activities. Monitor official PAGASA advisories and assess resort operations.',
+      };
+    }
+
+    if (
+      condition.includes('rain') ||
+      condition.includes('drizzle') ||
+      description.includes('rain') ||
+      wind >= 10 ||
+      rain >= 2.5
+    ) {
+      return {
+        level: 'caution',
+        title: 'Weather Advisory',
+        message: 'Rain or stronger winds may affect swimming and outdoor events. Review the conditions before confirming guest activities.',
+      };
+    }
+
+    return {
+      level: 'normal',
+      title: 'No Significant Weather Concern Detected',
+      message: 'Current weather data does not indicate a significant concern. Continue checking official weather updates.',
+    };
+  };
+
   // =========================================================
   // LOGOUT
   // =========================================================
@@ -682,7 +839,11 @@ const OwnerDashboard: React.FC = () => {
       });
     } catch (error) {
       console.error('Logout failed:', error);
-      alert('Unable to log out. Please try again.');
+      setFeedbackModal({
+        title: 'Logout failed',
+        message: 'Unable to log out. Please try again.',
+        variant: 'error',
+      });
     }
   };
 
@@ -699,7 +860,9 @@ const OwnerDashboard: React.FC = () => {
 
     setPkgName('');
     setPkgResortType('Beach Resort');
-    setPricingOptions([{ id: `rate-${Date.now()}`, unit: 'night', price: 0, durationHours: 12, guestCapacity: 2 }]);
+    setUsageType('swimming');
+    setEventTypes(['Birthday Party']);
+    setPricingOptions([{ id: `rate-${Date.now()}`, unit: 'person', price: 0, guestCapacity: 1 }]);
 
 
     setPkgDesc('');
@@ -724,6 +887,8 @@ const OwnerDashboard: React.FC = () => {
 
     setLatitude(null);
     setLongitude(null);
+    setAccommodationWeather(null);
+    setWeatherError('');
 
     setFormError('');
   };
@@ -977,6 +1142,8 @@ const OwnerDashboard: React.FC = () => {
     setEditingPackageId(pkg.id);
     setPkgName(pkg.name || '');
     setPkgResortType((pkg.resortType || pkg.category || 'Beach Resort') as typeof pkgResortType);
+    setUsageType(pkg.usageType || (pkg.reservationMode === 'event_booking' ? 'event' : pkg.reservationMode === 'overnight_stay' ? 'overnight' : 'swimming'));
+    setEventTypes(Array.isArray(pkg.eventTypes) && pkg.eventTypes.length ? pkg.eventTypes : ['Birthday Party']);
     const rates = pkg.pricingOptions?.length ? pkg.pricingOptions : [{ id: `legacy-${Date.now()}`, unit: (pkg.priceUnit || 'night') as PricingUnit, price: Number(pkg.price || 0), durationHours: 12, guestCapacity: 2 }];
     const legacyServices = Array.isArray(pkg.addOns) ? pkg.addOns : [];
     setPricingOptions(rates.map((rate, index) => ({
@@ -1011,21 +1178,45 @@ const OwnerDashboard: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleDeletePackage = async (pkg: OwnerPackage) => {
-    const confirmed = window.confirm(`Delete "${pkg.name}"? This action cannot be undone.`);
-    if (!confirmed) return;
+  const deletePackageNow = async (pkg: OwnerPackage) => {
+    setFeedbackBusy(true);
     try {
       const currentUser = auth.currentUser;
       if (!currentUser || pkg.ownerId !== currentUser.uid) {
-        alert('You are not allowed to delete this listing.');
+        setFeedbackModal({
+          title: 'Unable to delete listing',
+          message: 'You are not allowed to delete this listing.',
+          variant: 'error',
+        });
         return;
       }
+
       await deleteDoc(doc(db, 'packages', pkg.id));
-      alert('Accommodation deleted successfully.');
+      setFeedbackModal({
+        title: 'Accommodation deleted',
+        message: `${pkg.name || 'The accommodation'} has been successfully deleted.`,
+        variant: 'success',
+      });
     } catch (error) {
       console.error('Error deleting accommodation:', error);
-      alert('Unable to delete this accommodation. Please try again.');
+      setFeedbackModal({
+        title: 'Delete failed',
+        message: 'Unable to delete this accommodation. Please check your connection and try again.',
+        variant: 'error',
+      });
+    } finally {
+      setFeedbackBusy(false);
     }
+  };
+
+  const handleDeletePackage = (pkg: OwnerPackage) => {
+    setFeedbackModal({
+      title: 'Delete accommodation?',
+      message: `Are you sure you want to delete "${pkg.name}"? This action cannot be undone.`,
+      variant: 'confirm',
+      confirmLabel: 'Delete accommodation',
+      onConfirm: () => deletePackageNow(pkg),
+    });
   };
 
   // =========================================================
@@ -1080,6 +1271,11 @@ const OwnerDashboard: React.FC = () => {
 
     if (!name) {
       setFormError('Enter a villa or accommodation name.');
+      return;
+    }
+
+    if (usageType === 'event' && eventTypes.length === 0) {
+      setFormError('Select at least one event type accepted by this venue.');
       return;
     }
 
@@ -1231,6 +1427,16 @@ const OwnerDashboard: React.FC = () => {
         resortType: pkgResortType,
         category: pkgResortType,
 
+        // Reservation routing metadata used by guest-side reservation screens.
+        usageType,
+        eventTypes: usageType === 'event' ? [...eventTypes] : [],
+        reservationMode:
+          usageType === 'event'
+            ? 'event_booking'
+            : usageType === 'overnight'
+              ? 'overnight_stay'
+              : 'day_use',
+
         // Full pricing structure for the customer-facing accommodation details.
         pricingOptions: validPricingOptions,
 
@@ -1288,10 +1494,18 @@ const OwnerDashboard: React.FC = () => {
           throw new Error('You are not allowed to edit this listing.');
         }
         await updateDoc(doc(db, 'packages', editingPackageId), packagePayload);
-        alert('Accommodation updated successfully!');
+        setFeedbackModal({
+          title: 'Changes saved',
+          message: 'Your accommodation details have been updated successfully.',
+          variant: 'success',
+        });
       } else {
         await addDoc(collection(db, 'packages'), packagePayload);
-        alert('Accommodation published successfully!');
+        setFeedbackModal({
+          title: 'Listing published',
+          message: 'Your accommodation is now published and available according to its availability settings.',
+          variant: 'success',
+        });
       }
 
       setShowAddModal(false);
@@ -2154,6 +2368,101 @@ const OwnerDashboard: React.FC = () => {
                           </select>
                         </div>
 
+                        {/* LISTING PURPOSE / RESERVATION TYPE */}
+                        <div className="form-group owner-field-full">
+                          <label>What will guests reserve? <span>*</span></label>
+                          <small className="owner-field-hint">
+                            This determines which reservation flow should be shown to guests.
+                          </small>
+
+                          <div className="owner-usage-type-grid">
+                            {LISTING_USAGE_OPTIONS.map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                className={`owner-usage-option ${usageType === option.value ? 'is-selected' : ''}`}
+                                onClick={() => {
+                                  setUsageType(option.value);
+                                  setPricingOptions((current) => {
+                                    if (current.length !== 1 || Number(current[0].price) > 0) return current;
+                                    const nextUnit: PricingUnit =
+                                      option.value === 'overnight'
+                                        ? 'night'
+                                        : option.value === 'event'
+                                          ? 'package'
+                                          : 'person';
+                                    return [{
+                                      ...current[0],
+                                      unit: nextUnit,
+                                      durationHours: nextUnit === 'night' ? 12 : undefined,
+                                      guestCapacity: nextUnit === 'person' ? 1 : undefined,
+                                      minimumHours: undefined,
+                                    }];
+                                  });
+                                }}
+                                disabled={isSubmitting}
+                                aria-pressed={usageType === option.value}
+                              >
+                                <strong>{option.label}</strong>
+                                <span>{option.description}</span>
+                              </button>
+                            ))}
+                          </div>
+
+                          {usageType === 'event' && (
+                            <div className="owner-event-types">
+                              <label>Events accepted by this venue <span>*</span></label>
+                              <small className="owner-field-hint">
+                                Select all events that guests may request.
+                              </small>
+                              <div className="owner-event-type-grid">
+                                {EVENT_TYPE_OPTIONS.map((eventType) => (
+                                  <label
+                                    key={eventType}
+                                    className={`owner-event-type-option ${eventTypes.includes(eventType) ? 'is-selected' : ''}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={eventTypes.includes(eventType)}
+                                      onChange={(event) => setEventTypes((current) =>
+                                        event.target.checked
+                                          ? [...current, eventType]
+                                          : current.filter((item) => item !== eventType)
+                                      )}
+                                      disabled={isSubmitting}
+                                    />
+                                    <span>{eventType}</span>
+                                  </label>
+                                ))}
+                              </div>
+                              <div className="owner-event-hint">
+                                Guests choosing this listing can identify their event type, event date,
+                                expected guests, and preferred event schedule in the reservation flow.
+                              </div>
+                            </div>
+                          )}
+
+                          {usageType === 'swimming' && (
+                            <div className="owner-usage-hint">
+                              <strong>Day-use reservation</strong>
+                              <span>
+                                Guests reserve a swimming visit by date, session, number of swimmers,
+                                and selected entrance or cottage rates. Overnight details are not required.
+                              </span>
+                            </div>
+                          )}
+
+                          {usageType === 'overnight' && (
+                            <div className="owner-usage-hint">
+                              <strong>Overnight reservation</strong>
+                              <span>
+                                Guests reserve a stay using check-in and check-out dates, number of guests,
+                                and the selected room or accommodation rate.
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
                         {/* FLEXIBLE PRICING OPTIONS */}
                         <div className="form-group owner-field-full">
                           <div className="owner-flex-pricing-heading"><div><label>Accommodation Rates <span>*</span></label><small className="owner-field-hint">Add every way guests can pay. Resort type does not limit pricing choices.</small></div><button type="button" className="owner-add-rate-btn" onClick={() => setPricingOptions((items) => [...items, { id: `rate-${Date.now()}-${items.length}`, unit: 'person', price: 0 }])} disabled={isSubmitting}>+ Add rate</button></div>
@@ -2691,6 +3000,98 @@ const OwnerDashboard: React.FC = () => {
                         </p>
                       </div>
 
+                      {/* LIVE WEATHER PREVIEW */}
+                      <section className="owner-weather-card">
+                        <div className="owner-weather-heading">
+                          <div className="owner-weather-heading-icon">
+                            <IonIcon icon={sparklesOutline} />
+                          </div>
+                          <div>
+                            <span className="owner-weather-kicker">LIVE LOCATION WEATHER</span>
+                            <h4>Weather at this accommodation</h4>
+                            <p>Automatically updates when the map location changes.</p>
+                          </div>
+                          {latitude !== null && longitude !== null && (
+                            <button
+                              type="button"
+                              className="owner-weather-refresh"
+                              onClick={() => setWeatherRefresh((value) => value + 1)}
+                              disabled={weatherLoading}
+                              aria-label="Refresh weather"
+                            >
+                              <IonIcon icon={timeOutline} />
+                            </button>
+                          )}
+                        </div>
+
+                        {latitude === null || longitude === null ? (
+                          <div className="owner-weather-placeholder">
+                            <IonIcon icon={locationOutline} />
+                            <strong>Select a map location first</strong>
+                            <span>Current weather will appear here after you pin the accommodation.</span>
+                          </div>
+                        ) : weatherLoading ? (
+                          <div className="owner-weather-placeholder">
+                            <IonSpinner name="crescent" />
+                            <strong>Checking local weather...</strong>
+                            <span>Retrieving current conditions for the selected coordinates.</span>
+                          </div>
+                        ) : weatherError ? (
+                          <div className="owner-weather-error">
+                            <IonIcon icon={informationCircleOutline} />
+                            <div>
+                              <strong>Weather service unavailable</strong>
+                              <span>{weatherError}</span>
+                            </div>
+                            <button type="button" onClick={() => setWeatherRefresh((value) => value + 1)}>
+                              Retry
+                            </button>
+                          </div>
+                        ) : accommodationWeather ? (
+                          <>
+                            <div className="owner-weather-current">
+                              <div className="owner-weather-current-main">
+                                {accommodationWeather.icon && (
+                                  <img
+                                    src={`https://openweathermap.org/img/wn/${accommodationWeather.icon}@2x.png`}
+                                    alt={accommodationWeather.description || 'Weather icon'}
+                                  />
+                                )}
+                                <div>
+                                  <strong>{Math.round(Number(accommodationWeather.temperature || 0))}°C</strong>
+                                  <span>{accommodationWeather.description || accommodationWeather.condition}</span>
+                                </div>
+                              </div>
+                              <div className="owner-weather-location">
+                                <IonIcon icon={locationOutline} />
+                                {accommodationWeather.location || selectedLocationLabel || 'Selected accommodation'}
+                              </div>
+                            </div>
+
+                            <div className="owner-weather-stats">
+                              <div><span>Feels like</span><strong>{Math.round(Number(accommodationWeather.feelsLike || 0))}°C</strong></div>
+                              <div><span>Humidity</span><strong>{Number(accommodationWeather.humidity || 0)}%</strong></div>
+                              <div><span>Wind speed</span><strong>{Number(accommodationWeather.windSpeed || 0)} m/s</strong></div>
+                              <div><span>Rainfall</span><strong>{Number(accommodationWeather.rain || 0)} mm</strong></div>
+                            </div>
+
+                            {(() => {
+                              const advisory = getAccommodationWeatherAdvisory(accommodationWeather);
+                              return (
+                                <div className={`owner-weather-advisory ${advisory.level}`}>
+                                  <IonIcon icon={advisory.level === 'warning' ? informationCircleOutline : advisory.level === 'caution' ? timeOutline : checkmarkCircleOutline} />
+                                  <div><strong>{advisory.title}</strong><span>{advisory.message}</span></div>
+                                </div>
+                              );
+                            })()}
+                            <small className="owner-weather-disclaimer">
+                              Informational weather conditions only. This is not an official storm warning.
+                              Follow PAGASA for official warnings and safety instructions.
+                            </small>
+                          </>
+                        ) : null}
+                      </section>
+
                       {latitude !== null && longitude !== null && (
                         <button
                           type="button"
@@ -2769,6 +3170,64 @@ const OwnerDashboard: React.FC = () => {
           )}
         </div>
       </IonContent>
+
+      {feedbackModal && (
+        <div className="owner-feedback-backdrop" role="presentation">
+          <section
+            className={`owner-feedback-modal is-${feedbackModal.variant}`}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="owner-feedback-title"
+            aria-describedby="owner-feedback-message"
+          >
+            <div className="owner-feedback-icon" aria-hidden="true">
+              {feedbackModal.variant === 'success' ? (
+                <IonIcon icon={checkmarkCircleOutline} />
+              ) : feedbackModal.variant === 'confirm' ? (
+                <IonIcon icon={informationCircleOutline} />
+              ) : (
+                <IonIcon icon={closeOutline} />
+              )}
+            </div>
+            <h2 id="owner-feedback-title">{feedbackModal.title}</h2>
+            <p id="owner-feedback-message">{feedbackModal.message}</p>
+            <div className="owner-feedback-actions">
+              {feedbackModal.variant === 'confirm' ? (
+                <>
+                  <button
+                    type="button"
+                    className="owner-feedback-cancel"
+                    onClick={() => setFeedbackModal(null)}
+                    disabled={feedbackBusy}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="owner-feedback-confirm"
+                    onClick={async () => {
+                      const action = feedbackModal.onConfirm;
+                      setFeedbackModal(null);
+                      if (action) await action();
+                    }}
+                    disabled={feedbackBusy}
+                  >
+                    {feedbackModal.confirmLabel || 'Confirm'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="owner-feedback-confirm"
+                  onClick={() => setFeedbackModal(null)}
+                >
+                  Okay
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </IonPage>
   );
 };

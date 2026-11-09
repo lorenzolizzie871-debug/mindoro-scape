@@ -26,6 +26,8 @@ import {
   doc,
   onSnapshot,
   query,
+  updateDoc,
+  serverTimestamp,
   where,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
@@ -38,6 +40,26 @@ type VillaRate = {
   label?: string;
   guestCapacity?: number;
   includedAmenities?: string[] | string;
+  durationHours?: number;
+  minimumHours?: number;
+  additionalServices?: VillaAddOn[];
+};
+
+type VillaAddOn = {
+  id?: string;
+  name: string;
+  price: number | string;
+  unit?: 'fixed' | 'per_person' | 'per_hour' | string;
+  included?: boolean;
+};
+
+type VillaBookingSchedule = {
+  availableDays?: string[];
+  sessions?: {
+    day?: { enabled?: boolean; startTime?: string; endTime?: string };
+    night?: { enabled?: boolean; startTime?: string; endTime?: string };
+  };
+  extension?: { enabled?: boolean; feePerHour?: number; maxHours?: number };
 };
 
 export type OwnerVillaPackage = {
@@ -52,10 +74,19 @@ export type OwnerVillaPackage = {
   price?: number | string;
   priceUnit?: string;
   pricingOptions?: VillaRate[];
+  addOns?: VillaAddOn[];
   amenities?: string[] | string;
+  usageType?: 'swimming' | 'event' | 'overnight' | string;
+  eventTypes?: string[];
+  reservationMode?: 'day_use' | 'event_booking' | 'overnight_stay' | string;
+  bookingSchedule?: VillaBookingSchedule;
+  childFreeUnderAge?: number | null;
+  latitude?: number;
+  longitude?: number;
+  locationLabel?: string;
   imageUrl?: string;
   imageUrls?: string[];
-  availability?: string;
+  availability?: 'available' | 'unavailable' | string;
   status?: string;
   createdAt?: unknown;
 };
@@ -120,6 +151,33 @@ const ratesFor = (villa: OwnerVillaPackage): VillaRate[] => {
     : [];
 };
 
+const getUsageType = (villa: OwnerVillaPackage): 'swimming' | 'event' | 'overnight' => {
+  if (villa.usageType === 'event' || villa.reservationMode === 'event_booking') return 'event';
+  if (villa.usageType === 'overnight' || villa.reservationMode === 'overnight_stay') return 'overnight';
+  return 'swimming';
+};
+
+const usageLabel = (villa: OwnerVillaPackage) => {
+  const usage = getUsageType(villa);
+  if (usage === 'event') return 'Event venue';
+  if (usage === 'overnight') return 'Overnight accommodation';
+  return 'Swimming / Day use';
+};
+
+const formatTime = (value?: string) => {
+  if (!value) return 'Not set';
+  const [hourText, minuteText = '00'] = value.split(':');
+  const hour = Number(hourText);
+  if (!Number.isFinite(hour)) return value;
+  return `${hour % 12 || 12}:${minuteText} ${hour >= 12 ? 'PM' : 'AM'}`;
+};
+
+const serviceUnitLabel = (unit?: string) => {
+  if (unit === 'per_person') return 'per guest';
+  if (unit === 'per_hour') return 'per hour';
+  return 'one-time';
+};
+
 const startingRate = (villa: OwnerVillaPackage) => {
   const rates = ratesFor(villa)
     .map((rate) => Number(rate.price))
@@ -146,6 +204,7 @@ const dateLabel = (value: VillaReview['createdAt']) => {
     : '';
 };
 
+
 const OwnerVillas: React.FC<Props> = ({
   ownerId,
   resortName,
@@ -161,7 +220,16 @@ const OwnerVillas: React.FC<Props> = ({
   const [selectedVilla, setSelectedVilla] = useState<OwnerVillaPackage | null>(null);
   const [reviewVilla, setReviewVilla] = useState<OwnerVillaPackage | null>(null);
   const [deletingId, setDeletingId] = useState('');
+  const [availabilityBusyId, setAvailabilityBusyId] = useState('');
   const [menuVillaId, setMenuVillaId] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmText: string;
+    danger?: boolean;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
+  const [appMessage, setAppMessage] = useState<{ title: string; message: string } | null>(null);
 
   useEffect(() => {
     if (!ownerId) {
@@ -256,12 +324,31 @@ const OwnerVillas: React.FC<Props> = ({
     });
   }, [villas, search, filter]);
 
-  const removeVilla = async (villa: OwnerVillaPackage) => {
-    const confirmed = window.confirm(
-      `Delete "${villa.name || 'this accommodation'}"? This will permanently remove its listing from your inventory.`
-    );
-    if (!confirmed) return;
+  const toggleVillaAvailability = async (villa: OwnerVillaPackage) => {
+    const currentlyUnavailable = isUnavailable(villa);
+    const nextAvailability = currentlyUnavailable ? 'available' : 'unavailable';
+    setAvailabilityBusyId(villa.id);
+    try {
+      await updateDoc(doc(db, 'packages', villa.id), {
+        availability: nextAvailability,
+        availabilityUpdatedAt: serverTimestamp(),
+        availabilityUpdatedBy: ownerId,
+      });
+      setMenuVillaId('');
+      setSelectedVilla((current) =>
+        current?.id === villa.id
+          ? { ...current, availability: nextAvailability }
+          : current
+      );
+    } catch (err) {
+      console.error('Villa availability update failed:', err);
+      setAppMessage({ title: 'Update failed', message: 'Unable to update accommodation availability. Please check your Firestore permissions and try again.' });
+    } finally {
+      setAvailabilityBusyId('');
+    }
+  };
 
+  const removeVilla = async (villa: OwnerVillaPackage) => {
     setDeletingId(villa.id);
     try {
       await deleteDoc(doc(db, 'packages', villa.id));
@@ -270,10 +357,40 @@ const OwnerVillas: React.FC<Props> = ({
       if (reviewVilla?.id === villa.id) setReviewVilla(null);
     } catch (err) {
       console.error('Villa deletion failed:', err);
-      window.alert('Unable to delete this villa. Please try again.');
+      setAppMessage({ title: 'Delete failed', message: 'Unable to delete this accommodation. Please try again.' });
     } finally {
       setDeletingId('');
     }
+  };
+
+  const requestVillaAvailabilityChange = (villa: OwnerVillaPackage) => {
+    const currentlyUnavailable = isUnavailable(villa);
+    setMenuVillaId('');
+    setConfirmDialog({
+      title: currentlyUnavailable ? 'Make accommodation available?' : 'Temporarily unavailable?',
+      message: currentlyUnavailable
+        ? 'Guests will be able to see and reserve this accommodation again, subject to its booking schedule.'
+        : 'Guests will no longer be able to make new reservations for this accommodation while it is unavailable.',
+      confirmText: currentlyUnavailable ? 'Make available' : 'Set unavailable',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        await toggleVillaAvailability(villa);
+      },
+    });
+  };
+
+  const requestDeleteVilla = (villa: OwnerVillaPackage) => {
+    setMenuVillaId('');
+    setConfirmDialog({
+      title: 'Delete accommodation?',
+      message: `Are you sure you want to delete "${villa.name || 'this accommodation'}"? This will permanently remove its listing from your inventory.`,
+      confirmText: 'Delete accommodation',
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        await removeVilla(villa);
+      },
+    });
   };
 
   const getRating = (reviews: VillaReview[]) => {
@@ -415,7 +532,7 @@ const OwnerVillas: React.FC<Props> = ({
                   {minRate > 0 && <span className="ov-price-badge"><b>{money(minRate)}</b><small>/ {unitLabel(minRateOption?.unit || villa.priceUnit)}</small></span>}
                   <span className="ov-image-shade" />
                   <span className="ov-image-title">
-                    <small>{villa.resortType || villa.category || 'ACCOMMODATION'}</small>
+                    <small>{usageLabel(villa)} · {villa.resortType || villa.category || 'ACCOMMODATION'}</small>
                     <strong>{villa.name || 'Untitled accommodation'}</strong>
                   </span>
                   <span className="ov-view-hint"><IonIcon icon={eyeOutline} /> View</span>
@@ -467,7 +584,20 @@ const OwnerVillas: React.FC<Props> = ({
                       <button type="button" onClick={() => { setSelectedVilla(villa); setMenuVillaId(''); }}>
                         <IonIcon icon={eyeOutline} /> View details
                       </button>
-                      <button type="button" className="danger" disabled={deletingId === villa.id} onClick={() => void removeVilla(villa)}>
+                      <button
+                        type="button"
+                        className={unavailable ? 'availability-action make-available' : 'availability-action make-unavailable'}
+                        disabled={availabilityBusyId === villa.id}
+                        onClick={() => requestVillaAvailabilityChange(villa)}
+                      >
+                        {availabilityBusyId === villa.id
+                          ? <IonSpinner name="crescent" />
+                          : <IonIcon icon={unavailable ? homeOutline : closeCircleOutline} />}
+                        {availabilityBusyId === villa.id
+                          ? 'Updating availability…'
+                          : unavailable ? 'Make available' : 'Temporarily unavailable'}
+                      </button>
+                      <button type="button" className="danger" disabled={deletingId === villa.id || availabilityBusyId === villa.id} onClick={() => requestDeleteVilla(villa)}>
                         {deletingId === villa.id ? <IonSpinner name="crescent" /> : <IonIcon icon={trashOutline} />}
                         Delete accommodation
                       </button>
@@ -493,12 +623,69 @@ const OwnerVillas: React.FC<Props> = ({
               </div>
             ) : null}
             <p className="ov-detail-description">{selectedVilla.description || 'No description provided.'}</p>
-            <div className="ov-detail-location"><IonIcon icon={locationOutline} /> {selectedVilla.resortLocation || resortLocation || resortName}</div>
+            <div className="ov-detail-location"><IonIcon icon={locationOutline} /> {selectedVilla.locationLabel || selectedVilla.resortLocation || resortLocation || resortName}</div>
+            <div className="ov-reservation-summary">
+              <span className="ov-kicker">RESERVATION SETUP</span>
+              <strong>{usageLabel(selectedVilla)}</strong>
+              {getUsageType(selectedVilla) === 'event' && (
+                <div className="ov-event-tags">
+                  {(selectedVilla.eventTypes?.length ? selectedVilla.eventTypes : ['Event types not specified']).map((eventType) => (
+                    <span key={eventType}>{eventType}</span>
+                  ))}
+                </div>
+              )}
+              {getUsageType(selectedVilla) === 'overnight' && (
+                <small>Guests reserve an overnight stay with check-in and check-out dates.</small>
+              )}
+              {getUsageType(selectedVilla) === 'swimming' && (
+                <small>Guests reserve a day-use or night swimming session.</small>
+              )}
+            </div>
+
             <h3>Pricing options</h3>
             <div className="ov-detail-rates">
               {ratesFor(selectedVilla).length ? ratesFor(selectedVilla).map((rate, index) => (
-                <div key={rate.id || index}><span>{rate.label || `Per ${unitLabel(rate.unit)}`}</span><strong>{money(Number(rate.price))} <small>/ {unitLabel(rate.unit)}</small></strong></div>
+                <div className="ov-detail-rate-item" key={rate.id || index}>
+                  <div className="ov-detail-rate-main">
+                    <span>{rate.label || `Per ${unitLabel(rate.unit)}`}</span>
+                    <strong>{money(Number(rate.price))} <small>/ {unitLabel(rate.unit)}</small></strong>
+                  </div>
+                  {(rate.guestCapacity || rate.durationHours || rate.minimumHours) ? (
+                    <small className="ov-rate-meta">
+                      {rate.guestCapacity ? `Capacity: ${rate.guestCapacity} guests` : ''}
+                      {rate.durationHours ? ` · Included: ${rate.durationHours} hours` : ''}
+                      {rate.minimumHours ? ` · Minimum: ${rate.minimumHours} hours` : ''}
+                    </small>
+                  ) : null}
+                  {toList(rate.includedAmenities).length > 0 && (
+                    <div className="ov-event-tags">{toList(rate.includedAmenities).map((item) => <span key={item}>{item}</span>)}</div>
+                  )}
+                  {(rate.additionalServices || []).length > 0 && (
+                    <div className="ov-rate-services">
+                      <b>Additional services</b>
+                      {(rate.additionalServices || []).map((service, serviceIndex) => (
+                        <span key={service.id || `${index}-${serviceIndex}`}>
+                          {service.name} · {service.included ? 'Included' : `${money(Number(service.price) || 0)} ${serviceUnitLabel(service.unit)}`}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )) : <span>No pricing options added.</span>}
+            </div>
+
+            <h3>Booking schedule</h3>
+            <div className="ov-schedule-details">
+              <div><small>Available days</small><strong>{selectedVilla.bookingSchedule?.availableDays?.length ? selectedVilla.bookingSchedule.availableDays.map((day) => day.slice(0, 3)).join(', ') : 'All days (default)'}</strong></div>
+              <div><small>Day session</small><strong>{selectedVilla.bookingSchedule?.sessions?.day?.enabled === false ? 'Disabled' : `${formatTime(selectedVilla.bookingSchedule?.sessions?.day?.startTime || '08:00')} – ${formatTime(selectedVilla.bookingSchedule?.sessions?.day?.endTime || '17:00')}`}</strong></div>
+              <div><small>Night session</small><strong>{selectedVilla.bookingSchedule?.sessions?.night?.enabled === false ? 'Disabled' : `${formatTime(selectedVilla.bookingSchedule?.sessions?.night?.startTime || '18:00')} – ${formatTime(selectedVilla.bookingSchedule?.sessions?.night?.endTime || '00:00')}`}</strong></div>
+              <div><small>Extension</small><strong>{selectedVilla.bookingSchedule?.extension?.enabled ? `${money(Number(selectedVilla.bookingSchedule.extension.feePerHour || 0))} / hour · up to ${selectedVilla.bookingSchedule.extension.maxHours || 4} hours` : 'Not offered'}</strong></div>
+            </div>
+            <h3>Guest policy</h3>
+            <div className="ov-policy-detail">
+              {selectedVilla.childFreeUnderAge !== null && selectedVilla.childFreeUnderAge !== undefined
+                ? `Children under ${selectedVilla.childFreeUnderAge} years old are free.`
+                : 'No free-child age policy set.'}
             </div>
             <h3>Amenities</h3>
             <div className="ov-detail-amenities">
@@ -526,6 +713,47 @@ const OwnerVillas: React.FC<Props> = ({
           </div>
         )}
       </IonModal>
+
+      {confirmDialog && (
+        <div className="ov-app-dialog-backdrop" role="presentation" onClick={() => setConfirmDialog(null)}>
+          <section
+            className="ov-app-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ov-app-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={`ov-app-dialog-icon ${confirmDialog.danger ? 'danger' : ''}`}>
+              <IonIcon icon={confirmDialog.danger ? trashOutline : closeCircleOutline} />
+            </div>
+            <h2 id="ov-app-dialog-title">{confirmDialog.title}</h2>
+            <p>{confirmDialog.message}</p>
+            <div className="ov-app-dialog-actions">
+              <button type="button" className="ov-dialog-cancel" onClick={() => setConfirmDialog(null)}>Cancel</button>
+              <button
+                type="button"
+                className={`ov-dialog-confirm ${confirmDialog.danger ? 'danger' : ''}`}
+                onClick={() => void confirmDialog.onConfirm()}
+              >
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {appMessage && (
+        <div className="ov-app-dialog-backdrop" role="presentation" onClick={() => setAppMessage(null)}>
+          <section className="ov-app-dialog ov-app-message" role="alertdialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
+            <div className="ov-app-dialog-icon"><IonIcon icon={closeCircleOutline} /></div>
+            <h2>{appMessage.title}</h2>
+            <p>{appMessage.message}</p>
+            <div className="ov-app-dialog-actions">
+              <button type="button" className="ov-dialog-confirm" onClick={() => setAppMessage(null)}>Got it</button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 };
