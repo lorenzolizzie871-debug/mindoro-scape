@@ -183,9 +183,9 @@ const normalizeFavorite = (
   const amenities = getAmenities(packageRecord).length ? getAmenities(packageRecord) : getAmenities(favorite);
 
   return {
-    id: favorite.resortId || favorite.packageId || favorite.accommodationId || favorite.id,
+    id: favorite.resortId || favorite.packageId || favorite.accommodationId || favorite.offerId || favorite.id,
     favoriteDocId: favorite.id,
-    resortId: favorite.resortId || favorite.packageId || '',
+    resortId: favorite.resortId || favorite.packageId || favorite.accommodationId || favorite.offerId || '',
     name: accommodationName ? `${resortName} — ${accommodationName}` : resortName,
     location,
     municipality,
@@ -260,7 +260,7 @@ const Favorites: React.FC = () => {
         try {
           const cards = await Promise.all(
             records.map(async (favorite) => {
-              const packageId = favorite.resortId || favorite.packageId;
+              const packageId = favorite.resortId || favorite.packageId || favorite.accommodationId || favorite.offerId;
               if (!packageId) return normalizeFavorite(favorite, null);
 
               try {

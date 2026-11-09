@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { IonContent, IonPage } from '@ionic/react';
 import { useNavigate } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { collection, doc, getDoc, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import {
   Search,
@@ -281,6 +281,8 @@ const UserDashboard: React.FC = () => {
   const [activeCategory, setActiveCategory] =
     useState('All Resorts');
   const [favorites, setFavorites] = useState<string[]>([]);
+  const [favoriteBusyIds, setFavoriteBusyIds] = useState<string[]>([]);
+  const [favoriteMessage, setFavoriteMessage] = useState('');
   const [resortPhotoIndexes, setResortPhotoIndexes] = useState<Record<string, number>>({});
   const [showFilters, setShowFilters] = useState(false);
   const [maxPrice, setMaxPrice] = useState('15000');
@@ -289,15 +291,19 @@ const UserDashboard: React.FC = () => {
   useEffect(() => {
     let isActive = true;
     let unsubscribePackages: (() => void) | undefined;
+    let unsubscribeFavorites: (() => void) | undefined;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
       unsubscribePackages?.();
       unsubscribePackages = undefined;
+      unsubscribeFavorites?.();
+      unsubscribeFavorites = undefined;
 
       if (!user) {
         if (isActive) {
           setUserLoading(false);
           setResortsLoading(false);
+          setFavorites([]);
         }
         navigate('/login', { replace: true });
         return;
@@ -310,6 +316,37 @@ const UserDashboard: React.FC = () => {
       setUserLoading(true);
       setResortsLoading(true);
       setResortsError('');
+
+      // Keep the heart state in sync with the Favorites tab through Firestore.
+      const userFavoritesQuery = query(
+        collection(db, 'userFavorites'),
+        where('userId', '==', user.uid)
+      );
+      unsubscribeFavorites = onSnapshot(
+        userFavoritesQuery,
+        (favoriteSnapshot) => {
+          if (!isActive) return;
+          setFavorites(
+            favoriteSnapshot.docs
+              .map((favoriteDoc) => {
+                const favoriteData = favoriteDoc.data();
+                return String(
+                  favoriteData.resortId ||
+                  favoriteData.packageId ||
+                  favoriteData.accommodationId ||
+                  favoriteDoc.id
+                );
+              })
+              .filter(Boolean)
+          );
+        },
+        (favoriteError) => {
+          console.error('Unable to sync favorites:', favoriteError);
+          if (isActive) {
+            setFavoriteMessage('Unable to sync favorites. Please check your connection and Firestore permissions.');
+          }
+        }
+      );
 
       getDoc(doc(db, 'users', user.uid))
         .then((profileSnapshot) => {
@@ -369,6 +406,7 @@ const UserDashboard: React.FC = () => {
       isActive = false;
       unsubscribeAuth();
       unsubscribePackages?.();
+      unsubscribeFavorites?.();
     };
   }, [navigate]);
 
@@ -426,12 +464,52 @@ const UserDashboard: React.FC = () => {
     });
   };
 
-  const toggleFavorite = (id: string) => {
-    setFavorites((current) =>
-      current.includes(id)
-        ? current.filter((favoriteId) => favoriteId !== id)
-        : [...current, id]
-    );
+  const toggleFavorite = async (resort: Resort) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser?.uid) {
+      setFavoriteMessage('Please sign in to save accommodations to your favorites.');
+      return;
+    }
+
+    const id = resort.id;
+    if (favoriteBusyIds.includes(id)) return;
+
+    const favoriteRef = doc(db, 'userFavorites', `${currentUser.uid}_${id}`);
+    const alreadySaved = favorites.includes(id);
+
+    setFavoriteBusyIds((current) => [...current, id]);
+    setFavoriteMessage('');
+
+    try {
+      if (alreadySaved) {
+        await deleteDoc(favoriteRef);
+        setFavoriteMessage('Removed from your favorites.');
+      } else {
+        await setDoc(favoriteRef, {
+          userId: currentUser.uid,
+          resortId: id,
+          packageId: id,
+          resortName: resort.name,
+          accommodationName: resort.name,
+          resortLocation: resort.municipality || resort.location,
+          location: resort.location,
+          imageUrl: resort.image,
+          imageUrls: resort.imageGallery,
+          price: resort.price,
+          priceUnit: resort.priceUnit,
+          category: resort.category,
+          source: 'available-accommodations',
+          savedAt: serverTimestamp(),
+        });
+        setFavoriteMessage('Added to your favorites.');
+      }
+      // The onSnapshot listener above updates the heart and Favorites tab.
+    } catch (favoriteError) {
+      console.error('Unable to update favorite:', favoriteError);
+      setFavoriteMessage('Could not update favorites. Please try again.');
+    } finally {
+      setFavoriteBusyIds((current) => current.filter((favoriteId) => favoriteId !== id));
+    }
   };
 
   const goToExplore = () => {
@@ -735,7 +813,8 @@ const UserDashboard: React.FC = () => {
                                 : `Add ${resort.name} to favorites`
                             }
                             aria-pressed={isFavorite}
-                            onClick={() => toggleFavorite(resort.id)}
+                            onClick={() => void toggleFavorite(resort)}
+                            disabled={favoriteBusyIds.includes(resort.id)}
                           >
                             <Heart
                               size={19}
@@ -928,6 +1007,33 @@ const UserDashboard: React.FC = () => {
               <span>MADE FOR YOUR NEXT MINDORO ADVENTURE</span>
             </footer>
           </main>
+
+          {favoriteMessage && (
+            <div
+              role="status"
+              aria-live="polite"
+              onClick={() => setFavoriteMessage('')}
+              style={{
+                position: 'fixed',
+                left: '50%',
+                bottom: 'calc(88px + env(safe-area-inset-bottom, 0px))',
+                transform: 'translateX(-50%)',
+                zIndex: 1000,
+                width: 'min(92vw, 420px)',
+                padding: '13px 16px',
+                borderRadius: 14,
+                background: '#12384f',
+                color: '#fff',
+                boxShadow: '0 10px 30px rgba(12, 38, 55, .22)',
+                fontSize: 13,
+                fontWeight: 650,
+                textAlign: 'center',
+                cursor: 'pointer'
+              }}
+            >
+              {favoriteMessage}
+            </div>
+          )}
         </div>
       </IonContent>
       

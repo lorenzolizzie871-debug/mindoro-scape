@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { IonContent, IonFooter, IonPage, IonSpinner } from '@ionic/react';
 import {
-  ArrowLeft, BadgeCheck, CalendarDays, Camera, ChevronDown, MapPin, Share2,
+  ArrowLeft, BadgeCheck, CalendarDays, Camera, ChevronDown, MapPin, Share2, CheckCircle2,
   UserRound, Users, Waves, Wifi, Car, Coffee, UtensilsCrossed, Wind,
   TreePine, Fish, Sailboat, Flower2, Sunrise, Building2, Fan, Headset,
   Wine, Umbrella, LocateFixed, Footprints, Bike, Navigation, Clock, ExternalLink
@@ -232,6 +232,7 @@ const ResortDetail: React.FC = () => {
   const [locationError, setLocationError] = useState('');
   const [locating, setLocating] = useState(false);
   const [travelMode, setTravelMode] = useState<TravelMode>('driving');
+  const [shareMessage, setShareMessage] = useState('');
 
   useEffect(() => {
     if (!id) {
@@ -545,7 +546,7 @@ const ResortDetail: React.FC = () => {
       });
       else if (navigator.clipboard) {
         await navigator.clipboard.writeText(window.location.href);
-        window.alert('Link copied!');
+        setShareMessage('Resort link copied to clipboard.');
       }
     } catch { /* User cancelled sharing. */ }
   };
@@ -930,6 +931,13 @@ const ResortDetail: React.FC = () => {
             </div>
           </section>
           <div className="rd-bottom-space" />
+          {shareMessage && (
+            <div className="rd-inline-toast" role="status">
+              <CheckCircle2 size={17} />
+              <span>{shareMessage}</span>
+              <button type="button" onClick={() => setShareMessage('')} aria-label="Dismiss message">×</button>
+            </div>
+          )}
         </main>
       </IonContent>
 

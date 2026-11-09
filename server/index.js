@@ -1,11 +1,17 @@
 
-require("dotenv").config();
+const path = require("path");
+
+// Always load the .env file located beside this index.js file.
+// This works even when the server is started from another working directory.
+require("dotenv").config({
+  path: path.join(__dirname, ".env"),
+  override: true,
+});
 
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
 const crypto = require("crypto");
-const path = require("path");
 const fs = require("fs");
 const cron = require("node-cron");
 
@@ -1037,6 +1043,15 @@ const OPENWEATHER_API_KEY = String(
 const OPENWEATHER_BASE_URL =
   "https://api.openweathermap.org/data/2.5";
 
+// Log only safe metadata. Never print the complete API key.
+console.log("[WEATHER CONFIG]", {
+  configured: Boolean(OPENWEATHER_API_KEY),
+  keyLength: OPENWEATHER_API_KEY.length,
+  keyPreview: OPENWEATHER_API_KEY
+    ? `${OPENWEATHER_API_KEY.slice(0, 4)}...${OPENWEATHER_API_KEY.slice(-4)}`
+    : "EMPTY",
+});
+
 // ==================================================
 // WEATHER LOCATION VALIDATION
 // ==================================================
@@ -1106,7 +1121,7 @@ function sendWeatherError(res, error, operation) {
       success: false,
       code: "OPENWEATHER_UNAUTHORIZED",
       message:
-        "OpenWeather rejected the API key. Verify the key and wait for activation.",
+        "OpenWeather rejected the configured API key. Check that server/.env contains the correct OPENWEATHER_API_KEY, then verify the key status in your OpenWeather account. This response does not mean the server needs a new key.",
       providerStatus: 401,
       providerMessage: details.providerMessage,
     });
@@ -1325,10 +1340,11 @@ app.get("/api/weather/health", (req, res) => {
   return res.json({
     success: true,
     configured: Boolean(OPENWEATHER_API_KEY),
+    keyLength: OPENWEATHER_API_KEY.length,
     provider: "OpenWeather",
     message: OPENWEATHER_API_KEY
-      ? "Weather API key is configured."
-      : "Weather API key is missing.",
+      ? "The server loaded an OpenWeather API key from server/.env. This does not yet confirm that OpenWeather has activated or accepted it."
+      : "OPENWEATHER_API_KEY was not found. Check the server/.env file.",
   });
 });
 
@@ -1419,5 +1435,8 @@ app.listen(PORT, () => {
   console.log("Firebase Admin: connected");
   console.log(`Server: http://localhost:${PORT}`);
   console.log(`PayPal mode: ${PAYPAL_MODE}`);
+  console.log(
+    `OpenWeather key: ${OPENWEATHER_API_KEY ? "loaded" : "MISSING"}`
+  );
   console.log("----------------------------------------");
 });

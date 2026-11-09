@@ -445,3 +445,33 @@
 .rd-thumb-error {
   opacity: .5;
 }
+
+
+/* Refined resort detail layout */
+.rd-page { --background: #f4f8fa; }
+.rd-header { box-shadow: 0 4px 18px rgba(18,56,79,.045); }
+.rd-main { padding-bottom: 18px; }
+.rd-gallery { box-shadow: 0 14px 36px rgba(16,55,75,.10); }
+.rd-hero { min-height: 250px; }
+.rd-resort-name { letter-spacing: -.04em; }
+.rd-fact, .rd-card, .rd-amenity { box-shadow: 0 5px 18px rgba(20,61,82,.035); }
+.rd-section { scroll-margin-top: 78px; }
+.rd-room { border-radius: 18px; }
+.rd-select-room, .rd-primary-button, .rd-book-button { transition: transform .16s ease, box-shadow .16s ease, background .16s ease; }
+.rd-select-room:active, .rd-primary-button:active, .rd-book-button:active { transform: scale(.98); }
+.rd-book-button { box-shadow: 0 8px 18px rgba(8,123,156,.2); }
+.rd-inline-toast {
+  position: fixed; z-index: 1000; left: 50%; bottom: calc(86px + env(safe-area-inset-bottom));
+  transform: translateX(-50%); display: flex; align-items: center; gap: 9px;
+  max-width: calc(100% - 28px); padding: 12px 14px; border-radius: 13px;
+  background: #123f4f; color: #fff; box-shadow: 0 12px 32px rgba(0,0,0,.2);
+  font-size: 12px; font-weight: 750; animation: rd-toast-in .2s ease-out;
+}
+.rd-inline-toast button { border: 0; background: transparent; color: #fff; font-size: 20px; line-height: 1; cursor: pointer; }
+@keyframes rd-toast-in { from { opacity: 0; transform: translate(-50%,8px); } to { opacity: 1; transform: translate(-50%,0); } }
+@media (max-width: 600px) {
+  .rd-main { width: calc(100% - 22px); }
+  .rd-hero { height: 265px; min-height: 230px; }
+  .rd-facts { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .rd-fact { min-width: 0; }
+}
