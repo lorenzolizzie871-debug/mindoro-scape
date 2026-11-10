@@ -2,8 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { IonContent, IonIcon, IonPage, IonSpinner } from '@ionic/react';
 import {
   locationOutline,
-  notificationsOutline,
-  personOutline,
   heart,
   trashOutline,
   shareSocialOutline,
@@ -17,6 +15,7 @@ import {
   alertCircleOutline,
 } from 'ionicons/icons';
 import { useNavigate } from 'react-router-dom';
+import { Bell, MapPin, UserRound } from 'lucide-react';
 import {
   collection,
   deleteDoc,
@@ -212,6 +211,9 @@ const Favorites: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  const [profilePhotoURL, setProfilePhotoURL] = useState(user?.photoURL ?? '');
+  const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
+
   const [favorites, setFavorites] = useState<FavoriteCard[]>([]);
   const [favoriteRecords, setFavoriteRecords] = useState<FavoriteRecord[]>([]);
   const [activeFilter, setActiveFilter] = useState('all');
@@ -224,6 +226,39 @@ const Favorites: React.FC = () => {
     message: '',
     icon: '',
   });
+
+  useEffect(() => {
+    if (!user?.uid) {
+      setProfilePhotoURL('');
+      setProfilePhotoFailed(false);
+      return;
+    }
+
+    // Show the Firebase Auth photo immediately while Firestore profile loads.
+    setProfilePhotoURL(user.photoURL ?? '');
+    setProfilePhotoFailed(false);
+
+    const profileRef = doc(db, 'users', user.uid);
+    const unsubscribe = onSnapshot(
+      profileRef,
+      (profileSnapshot) => {
+        const profileData = profileSnapshot.exists()
+          ? (profileSnapshot.data() as { photoURL?: unknown })
+          : {};
+        const firestorePhoto =
+          typeof profileData.photoURL === 'string' ? profileData.photoURL.trim() : '';
+
+        setProfilePhotoURL(firestorePhoto || user.photoURL || '');
+        setProfilePhotoFailed(false);
+      },
+      (profileError) => {
+        console.warn('Unable to sync profile photo on Favorites page:', profileError);
+        setProfilePhotoURL(user.photoURL ?? '');
+      },
+    );
+
+    return () => unsubscribe();
+  }, [user?.uid, user?.photoURL]);
 
   const showToast = (message: string, icon: string = checkmarkCircle) => {
     setToast({ show: true, message, icon });
@@ -416,7 +451,7 @@ const Favorites: React.FC = () => {
               <div className="fav-brand-copy">
                 <strong>Mindoro Scape</strong>
                 <small>
-                  <IonIcon icon={locationOutline} />
+                  <MapPin size={13} />
                   ORIENTAL MINDORO
                 </small>
               </div>
@@ -424,14 +459,19 @@ const Favorites: React.FC = () => {
 
             <div className="fav-header-actions">
               <button className="fav-icon-button" onClick={() => navigate('/user/dashboard')} aria-label="Notifications">
-                <IonIcon icon={notificationsOutline} />
+                <Bell size={21} />
                 <span className="fav-notification-dot" />
               </button>
               <button className="fav-profile-button" onClick={() => navigate('/user/profile')} aria-label="Open profile">
-                {user?.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" />
+                {profilePhotoURL && !profilePhotoFailed ? (
+                  <img
+                    src={profilePhotoURL}
+                    alt="Profile"
+                    className="fav-profile-image"
+                    onError={() => setProfilePhotoFailed(true)}
+                  />
                 ) : (
-                  <IonIcon icon={personOutline} />
+                  <UserRound size={20} />
                 )}
               </button>
             </div>

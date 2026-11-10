@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
   IonContent,
   IonIcon,
@@ -21,6 +22,7 @@ import {
   personOutline,
 } from 'ionicons/icons';
 import { collection, deleteDoc, doc, onSnapshot, query, serverTimestamp, setDoc, where } from 'firebase/firestore';
+import { Bell, MapPin, UserRound } from 'lucide-react';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap, Marker as MapLibreMarker } from 'maplibre-gl';
 
@@ -187,8 +189,57 @@ const Explore: React.FC = () => {
   const [maxPrice, setMaxPrice] = useState(20000);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [imageErrors, setImageErrors] = useState<string[]>([]);
+  const [user, setUser] = useState(auth.currentUser);
+  const [userPhotoURL, setUserPhotoURL] = useState('');
+  const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
 
-  const user = auth.currentUser;
+  // Keep the header avatar synchronized with the same Firestore profile
+  // document used by the Profile page, with Firebase Auth as a fallback.
+  useEffect(() => {
+    let unsubscribeProfile: (() => void) | undefined;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      unsubscribeProfile?.();
+      unsubscribeProfile = undefined;
+      setUser(currentUser);
+      setProfilePhotoFailed(false);
+
+      if (!currentUser) {
+        setUserPhotoURL('');
+        return;
+      }
+
+      setUserPhotoURL(currentUser.photoURL || '');
+
+      unsubscribeProfile = onSnapshot(
+        doc(db, 'users', currentUser.uid),
+        (profileSnapshot) => {
+          const profileData = profileSnapshot.exists()
+            ? profileSnapshot.data()
+            : {};
+          const firestorePhoto =
+            typeof profileData.photoURL === 'string'
+              ? profileData.photoURL.trim()
+              : '';
+
+          setUserPhotoURL(firestorePhoto || currentUser.photoURL || '');
+        },
+        (error) => {
+          console.error('Unable to load profile photo for Explore header:', error);
+          setUserPhotoURL(currentUser.photoURL || '');
+        },
+      );
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeProfile?.();
+    };
+  }, []);
+
+  useEffect(() => {
+    setProfilePhotoFailed(false);
+  }, [userPhotoURL]);
 
   // Keep the Explore heart buttons synchronized with the signed-in user's Firestore favorites.
   useEffect(() => {
@@ -538,39 +589,45 @@ const Explore: React.FC = () => {
           <header className="explore-header">
             <button
               type="button"
-              className="explore-brand"
+              className="dashboard-brand"
               onClick={() => navigate('/user/dashboard')}
               aria-label="Go to dashboard"
             >
-              <img src="/assets/mindoro-scape-logo.png" alt="Mindoro Scape" />
-              <span>
+              <img src="/assets/mindoro-scape-logo.png" alt="" />
+              <span className="dashboard-brand-copy">
                 <strong>Mindoro Scape</strong>
                 <small>
-                  <IonIcon icon={locationOutline} />
+                  <MapPin size={13} />
                   ORIENTAL MINDORO
                 </small>
               </span>
             </button>
 
-            <div className="explore-header-actions">
+            <div className="dashboard-header-actions">
               <button
                 type="button"
-                className="explore-header-icon"
+                className="dashboard-icon-button notification-trigger"
                 aria-label="Notifications"
                 onClick={() => navigate('/user/dashboard')}
               >
-                <IonIcon icon={notificationsOutline} />
+                <Bell size={21} />
+                <span className="notification-dot" />
               </button>
               <button
                 type="button"
-                className="explore-avatar"
+                className="dashboard-profile-button"
                 aria-label="Open profile"
                 onClick={() => navigate('/user/profile')}
               >
-                {user?.photoURL ? (
-                  <img src={user.photoURL} alt="Profile" />
+                {userPhotoURL && !profilePhotoFailed ? (
+                  <img
+                    src={userPhotoURL}
+                    alt="Profile"
+                    className="dashboard-profile-image"
+                    onError={() => setProfilePhotoFailed(true)}
+                  />
                 ) : (
-                  <IonIcon icon={personOutline} />
+                  <UserRound size={20} />
                 )}
               </button>
             </div>

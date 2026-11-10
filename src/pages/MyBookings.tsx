@@ -671,7 +671,7 @@ const MyBookings: React.FC = () => {
             >
               <img src="/assets/mindoro-scape-logo.png" alt="MINDORO SCAPE" />
               <span className="my-bookings-brand-copy">
-                <strong>MINDORO SCAPE</strong>
+                <strong>Mindoro Scape</strong>
                 <small><IonIcon icon={locationOutline} /> ORIENTAL MINDORO</small>
               </span>
             </button>

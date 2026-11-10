@@ -2837,26 +2837,33 @@ const OwnerDashboard: React.FC = () => {
                             {BOOKING_DAYS.map((day) => {
                               const checked = bookingSchedule.availableDays.includes(day.value);
                               return (
-                                <label className={`owner-day-option ${checked ? 'is-selected' : ''}`} key={day.value}>
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={(event) => setBookingSchedule((current) => ({
+                                <button
+                                  type="button"
+                                  className={`owner-day-option ${checked ? 'is-selected' : 'is-closed'}`}
+                                  key={day.value}
+                                  aria-pressed={checked}
+                                  disabled={isSubmitting}
+                                  onClick={() => setBookingSchedule((current) => {
+                                    const isOpen = current.availableDays.includes(day.value);
+                                    return {
                                       ...current,
-                                      availableDays: event.target.checked
-                                        ? [...current.availableDays, day.value]
-                                        : current.availableDays.filter((value) => value !== day.value),
-                                    }))}
-                                    disabled={isSubmitting}
-                                  />
+                                      availableDays: isOpen
+                                        ? current.availableDays.filter((value) => value !== day.value)
+                                        : BOOKING_DAYS
+                                            .map((item) => item.value)
+                                            .filter((value) => value === day.value || current.availableDays.includes(value)),
+                                    };
+                                  })}
+                                >
                                   <span>{day.label.slice(0, 3)}</span>
-                                </label>
+                                  <small>{checked ? 'Open' : 'Closed'}</small>
+                                </button>
                               );
                             })}
                           </div>
                           <small className="owner-field-hint">
                             {bookingSchedule.availableDays.length
-                              ? `${bookingSchedule.availableDays.length} day(s) selected`
+                              ? `${bookingSchedule.availableDays.length} day(s) open. Tap a day to open or close it.`
                               : 'No days selected. Guests will not be able to request a booking.'}
                           </small>
                         </div>

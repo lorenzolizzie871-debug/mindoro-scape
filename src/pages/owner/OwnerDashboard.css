@@ -8946,3 +8946,19 @@
   margin: 24px 0 30px;
   width: 100%;
 }
+
+/* Available-days picker (buttons): tap a day to open or close it */
+button.owner-day-option {
+  appearance: none;
+  -webkit-appearance: none;
+  align-content: center;
+  gap: 2px;
+  padding: 4px 0;
+  font-family: inherit;
+  line-height: 1.2;
+  touch-action: manipulation;
+}
+button.owner-day-option small { font-size: 8px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+button.owner-day-option.is-closed { background: #f3f5f6; border-color: #e1e7ea; color: #9aa7ae; }
+button.owner-day-option.is-selected small { color: #087849; }
+button.owner-day-option:disabled { opacity: .6; cursor: not-allowed; }

@@ -35,7 +35,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 15px;
+  background: var(--page-bg);
   border-bottom: 1px solid rgba(7, 81, 107, .09);
+  box-shadow: none;
   margin-bottom: 38px;
 }
 
@@ -50,13 +52,22 @@
   text-align: left;
 }
 
-.my-bookings-brand img { width: 49px; height: 49px; object-fit: contain; }
-.my-bookings-brand-copy { display: flex; flex-direction: column; gap: 5px; }
+.my-bookings-brand img {
+  width: 49px;
+  height: 49px;
+  object-fit: contain;
+}
+.my-bookings-brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
 .my-bookings-brand-copy strong {
   color: var(--primary-dark);
   font-size: 17px;
   font-weight: 850;
   letter-spacing: .2px;
+  text-transform: uppercase;
 }
 .my-bookings-brand-copy small {
   display: flex;
@@ -67,7 +78,10 @@
   font-weight: 800;
   letter-spacing: 1.2px;
 }
-.my-bookings-brand-copy small ion-icon { color: var(--accent); font-size: 13px; }
+.my-bookings-brand-copy small ion-icon {
+  color: var(--accent);
+  font-size: 13px;
+}
 
 .my-bookings-header-actions { display: flex; align-items: center; gap: 10px; }
 
@@ -350,12 +364,13 @@
   right: 0;
   bottom: 0;
   left: 0;
+  width: 100%;
   min-height: 72px;
   padding: 8px max(14px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left));
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 4px;
+  justify-content: space-between;
+  gap: 0;
   background: rgba(255,255,255,.97);
   border-top: 1px solid #e5edf1;
   box-shadow: 0 -5px 22px rgba(10,56,76,.07);
@@ -363,8 +378,8 @@
 }
 .my-bookings-nav-item {
   min-width: 0;
-  max-width: 150px;
-  flex: 1;
+  max-width: none;
+  flex: 1 1 0;
   min-height: 54px;
   padding: 5px 4px;
   display: flex;
@@ -691,8 +706,17 @@
   .my-bookings-header { min-height: 69px; margin-bottom: 27px; }
   .my-bookings-brand { gap: 9px; }
   .my-bookings-brand img { width: 42px; height: 42px; }
-  .my-bookings-brand-copy strong { font-size: 14px; }
-  .my-bookings-brand-copy small { font-size: 8px; letter-spacing: .9px; }
+  .my-bookings-brand-copy { gap: 5px; }
+  .my-bookings-brand-copy strong {
+    font-size: 14px;
+    font-weight: 850;
+    letter-spacing: .2px;
+  }
+  .my-bookings-brand-copy small {
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .9px;
+  }
   .my-bookings-inbox-button { width: 39px; min-height: 39px; padding: 0; }
   .my-bookings-inbox-button span { display: none; }
   .my-bookings-profile-button { width: 39px; height: 39px; }
@@ -983,4 +1007,328 @@
   color: #fff;
   font-size: 8px;
   letter-spacing: .04em;
+}
+
+
+/* =========================================
+   FULL-WIDTH WEB BOTTOM NAVIGATION
+   Five equal-width tabs, like the reference
+========================================= */
+@media (min-width: 769px) {
+  .my-bookings-bottom-nav {
+    min-height: 76px;
+    padding: 7px 4.5% calc(7px + env(safe-area-inset-bottom));
+    justify-content: space-between;
+    gap: 0;
+  }
+
+  .my-bookings-nav-item {
+    width: 20%;
+    max-width: none;
+    min-height: 60px;
+    flex: 1 1 20%;
+    gap: 4px;
+    border-radius: 12px;
+  }
+
+  .my-bookings-nav-item ion-icon {
+    font-size: 23px;
+  }
+
+  .my-bookings-nav-item span {
+    font-size: 12px;
+    font-weight: 650;
+  }
+}
+
+/* Keep the five tabs evenly distributed on narrow screens too. */
+@media (max-width: 520px) {
+  .my-bookings-bottom-nav {
+    justify-content: space-between;
+  }
+
+  .my-bookings-nav-item {
+    max-width: none;
+    flex: 1 1 20%;
+  }
+}
+
+
+/* =========================================
+   HEADER — MATCH EXPLORE PAGE
+   Same background, brand colors, and text scale
+========================================= */
+.my-bookings-header {
+  background: #f3f8fb;
+  border-bottom: 1px solid rgba(7, 81, 107, 0.09);
+  box-shadow: none;
+}
+
+.my-bookings-brand-copy strong {
+  color: #063d53;
+  font-size: 17px;
+  font-weight: 850;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.my-bookings-brand-copy small {
+  color: #7790a0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+}
+
+.my-bookings-brand-copy small ion-icon {
+  color: #0b9ca8;
+  font-size: 13px;
+}
+
+@media (max-width: 520px) {
+  .my-bookings-header {
+    background: #f3f8fb;
+  }
+
+  .my-bookings-brand-copy strong {
+    font-size: 14px;
+  }
+
+  .my-bookings-brand-copy small {
+    font-size: 8px;
+    letter-spacing: 0.9px;
+  }
+}
+
+
+/* =========================================
+   HEADER — MATCH THE LATEST EXPLORE REFERENCE
+========================================= */
+.my-bookings-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e8edf0;
+  box-shadow: none !important;
+}
+
+.my-bookings-brand {
+  gap: 14px;
+}
+
+.my-bookings-brand img {
+  width: 49px;
+  height: 49px;
+}
+
+.my-bookings-brand-copy {
+  gap: 3px;
+}
+
+.my-bookings-brand-copy strong {
+  color: #073b53;
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 850;
+  letter-spacing: -0.35px;
+  text-transform: none;
+}
+
+.my-bookings-brand-copy small {
+  color: #405967;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.my-bookings-brand-copy small ion-icon {
+  color: #087b91;
+  font-size: 15px;
+}
+
+@media (max-width: 520px) {
+  .my-bookings-header {
+    background: #ffffff !important;
+  }
+
+  .my-bookings-brand {
+    gap: 9px;
+  }
+
+  .my-bookings-brand img {
+    width: 42px;
+    height: 42px;
+  }
+
+  .my-bookings-brand-copy {
+    gap: 3px;
+  }
+
+  .my-bookings-brand-copy strong {
+    font-size: 17px;
+    line-height: 1.15;
+  }
+
+  .my-bookings-brand-copy small {
+    font-size: 9px;
+    letter-spacing: 0.85px;
+  }
+
+  .my-bookings-brand-copy small ion-icon {
+    font-size: 12px;
+  }
+}
+
+
+/* =========================================
+   FINAL HEADER ALIGNMENT — MATCH EXPLORE
+   Full-width surface + consistent brand/avatar scale
+========================================= */
+
+/* Break the header out of the padded content shell so it is not clipped/inset. */
+.my-bookings-header {
+  position: relative;
+  width: calc(100% + 72px);
+  min-height: 88px;
+  margin-top: 0;
+  margin-left: -36px;
+  padding: 0 36px;
+  box-sizing: border-box;
+  background: #ffffff !important;
+  border-bottom: 1px solid #e8edf0;
+  box-shadow: none !important;
+}
+
+/* Desktop brand typography matches the Explore/User Dashboard header. */
+.my-bookings-brand {
+  flex: 0 0 auto;
+  gap: 11px;
+}
+
+.my-bookings-brand img {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+}
+
+.my-bookings-brand-copy {
+  gap: 2px;
+}
+
+.my-bookings-brand-copy strong {
+  color: #073b53;
+  font-size: 17px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.35px;
+  text-transform: none;
+}
+
+.my-bookings-brand-copy small {
+  color: #405967;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.my-bookings-brand-copy small ion-icon {
+  color: #087b91;
+  font-size: 13px;
+}
+
+/* Same profile control size as the Explore/User Dashboard header. */
+.my-bookings-profile-button {
+  width: 39px;
+  min-width: 39px;
+  height: 39px;
+  min-height: 39px;
+  flex: 0 0 39px;
+  padding: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 20px;
+}
+
+.my-bookings-profile-button > ion-icon {
+  font-size: 20px;
+}
+
+.my-bookings-profile-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Tablet shell uses 22px horizontal padding. */
+@media (max-width: 768px) {
+  .my-bookings-header {
+    width: calc(100% + 44px);
+    margin-left: -22px;
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+}
+
+/* Mobile: match the smaller Explore header scale consistently. */
+@media (max-width: 520px) {
+  .my-bookings-header {
+    width: calc(100% + 30px);
+    min-height: 69px;
+    margin-left: -15px;
+    padding-right: 15px;
+    padding-left: 15px;
+    background: #ffffff !important;
+  }
+
+  .my-bookings-brand {
+    gap: 8px;
+  }
+
+  .my-bookings-brand img {
+    width: 35px;
+    height: 35px;
+    flex-basis: 35px;
+  }
+
+  .my-bookings-brand-copy {
+    gap: 2px;
+  }
+
+  .my-bookings-brand-copy strong {
+    font-size: 15px;
+    line-height: 1.15;
+    letter-spacing: -0.25px;
+  }
+
+  .my-bookings-brand-copy small {
+    font-size: 8px;
+    line-height: 1.2;
+    letter-spacing: 0.7px;
+  }
+
+  .my-bookings-brand-copy small ion-icon {
+    font-size: 11px;
+  }
+
+  .my-bookings-profile-button {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    min-height: 34px;
+    flex-basis: 34px;
+    font-size: 18px;
+  }
+
+  .my-bookings-profile-button > ion-icon {
+    font-size: 18px;
+  }
+}
+
+/* Very small phones use the shell's 11px side padding. */
+@media (max-width: 360px) {
+  .my-bookings-header {
+    width: calc(100% + 22px);
+    margin-left: -11px;
+    padding-right: 11px;
+    padding-left: 11px;
+  }
 }

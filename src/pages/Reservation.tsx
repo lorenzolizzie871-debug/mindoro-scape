@@ -368,6 +368,9 @@ const makeReference = () =>
 
   `MND-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
+const weekdayKey = (value: string) =>
+  new Date(`${value}T12:00:00`).toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+
 type ReservationCalendarProps = {
 
   selectedDate: string;
@@ -375,6 +378,8 @@ type ReservationCalendarProps = {
   bookedDates: Record<string, number>;
 
   blockBookedDates: boolean;
+
+  availableDays: string[];
 
   minDate: string;
 
@@ -384,7 +389,7 @@ type ReservationCalendarProps = {
 
 const ReservationCalendar: React.FC<ReservationCalendarProps> = ({
 
-  selectedDate, bookedDates, blockBookedDates, minDate, onSelect,
+  selectedDate, bookedDates, blockBookedDates, availableDays, minDate, onSelect,
 
 }) => {
 
@@ -476,7 +481,10 @@ const ReservationCalendar: React.FC<ReservationCalendarProps> = ({
 
           const isBooked = count > 0;
 
-          const isDisabled = isPast || (blockBookedDates && isBooked);
+          // Days the owner did not mark as available can never be selected.
+          const isClosed = !availableDays.includes(weekdayKey(cell.value));
+
+          const isDisabled = isPast || isClosed || (blockBookedDates && isBooked);
 
           const isSelected = selectedDate === cell.value;
 
@@ -498,17 +506,19 @@ const ReservationCalendar: React.FC<ReservationCalendarProps> = ({
 
                 isDisabled ? 'is-disabled' : '',
 
+                isClosed ? 'is-closed' : '',
+
               ].filter(Boolean).join(' ')}
 
               disabled={isDisabled}
 
               onClick={() => onSelect(cell.value)}
 
-              aria-label={`${cell.value}${isBooked ? `, ${count} reservation${count === 1 ? '' : 's'}` : ', available'}`}
+              aria-label={`${cell.value}${isClosed ? ', closed - not available' : isBooked ? `, ${count} reservation${count === 1 ? '' : 's'}` : ', available'}`}
 
               aria-pressed={isSelected}
 
-              title={isBooked ? `${count} existing reservation${count === 1 ? '' : 's'}` : 'Available'}
+              title={isClosed ? 'Closed - the owner is not available on this day' : isBooked ? `${count} existing reservation${count === 1 ? '' : 's'}` : 'Available'}
 
             >
 
@@ -531,6 +541,8 @@ const ReservationCalendar: React.FC<ReservationCalendarProps> = ({
         <span><i className="booked-dot" /> Booked</span>
 
         <span><i className="selected-dot" /> Selected</span>
+
+        <span><i className="closed-dot" /> Closed</span>
 
       </div>
 
@@ -628,7 +640,8 @@ const Reservation: React.FC = () => {
 
   const [children, setChildren] = useState(0);
 
-  const [childAges, setChildAges] = useState('');
+  const [childAges, setChildAges] = useState<string[]>([]);
+  const [showReservationCalendar, setShowReservationCalendar] = useState(false);
 
   const [quantity, setQuantity] = useState(1);
 
@@ -991,6 +1004,22 @@ useEffect(() => {
 
   const isSelectedDateAvailable = bookingSchedule.availableDays.includes(selectedDateDayKey);
 
+  // If the default date (tomorrow) falls on a day the owner is closed,
+  // move the selection to the next day the resort is open.
+  useEffect(() => {
+    if (!resort || bookingSchedule.availableDays.length === 0) return;
+    if (bookingSchedule.availableDays.includes(weekdayKey(checkIn))) return;
+
+    for (let offset = 1; offset <= 7; offset += 1) {
+      const candidate = plusDays(localDate(new Date()), offset);
+      if (bookingSchedule.availableDays.includes(weekdayKey(candidate))) {
+        setCheckIn(candidate);
+        setCheckOut(candidate);
+        return;
+      }
+    }
+  }, [resort, bookingSchedule.availableDays.join('|')]);
+
   const bookedDateCounts = useMemo<Record<string, number>>(() => {
 
     const counts: Record<string, number> = {};
@@ -1053,7 +1082,9 @@ useEffect(() => {
 
     : 0;
 
-  const parsedAges = childAges.split(',').map(v => v.trim()).filter(Boolean).map(Number);
+  const parsedAges = childAges.map(value => value.trim()).filter(Boolean).map(Number);
+  const enteredAgeCount = childAges.filter(value => value.trim() !== '').length;
+  const hasInvalidChildAge = childAges.some(value => value.trim() !== '' && (!/^\d{1,2}$/.test(value.trim()) || Number(value) < 0 || Number(value) > 17));
 
   const freeUnder = Number(resort?.childFreeUnderAge || 0);
 
@@ -1256,6 +1287,14 @@ useEffect(() => {
   };
 
   const changeDate = (value: string) => {
+
+    if (!bookingSchedule.availableDays.includes(weekdayKey(value))) {
+
+      setError('The resort is closed on that day. Please choose one of the open days.');
+
+      return;
+
+    }
 
     if (usageType === 'event' && bookedDateCounts[value]) {
 
@@ -1494,15 +1533,12 @@ getDoc(doc(db, 'packages', decodeURIComponent(id))),
 
     }
 
-    if (children > 0 && freeUnder > 0 && parsedAges.length !== children) {
-
-      setError(`Please enter the age of each child, separated by commas, to apply the under-${freeUnder} free-child policy.`);
-
+    if (children > 0 && (childAges.length !== children || enteredAgeCount !== children)) {
+      setError('Please enter the age of every child before continuing.');
       return;
-
     }
 
-    if (parsedAges.some(age => !Number.isInteger(age) || age < 0 || age > 17)) {
+    if (hasInvalidChildAge || parsedAges.some(age => !Number.isInteger(age) || age < 0 || age > 17)) {
 
       setError('Enter valid child ages from 0 to 17.');
 
@@ -1686,7 +1722,7 @@ getDoc(doc(db, 'packages', decodeURIComponent(id))),
 
         const idToken = await user.getIdToken();
 
-        const response = await fetch(`${String((import.meta as any).env?.VITE_API_URL || '').replace(/\/$/, '')}/api/paypal/create-order`, {
+        const response = await fetch(`${WEATHER_API_BASE_URL}/api/paypal/create-order`, {
 
           method: 'POST',
 
@@ -1979,19 +2015,25 @@ getDoc(doc(db, 'packages', decodeURIComponent(id))),
 
                   </label>
 
-                  <ReservationCalendar
-
-                    selectedDate={checkIn}
-
-                    bookedDates={bookedDateCounts}
-
-                    blockBookedDates={usageType === 'event'}
-
-                    minDate={localDate(new Date())}
-
-                    onSelect={changeDate}
-
-                  />
+                  <div className="rv-calendar-toggle-row">
+                    <div className="rv-selected-date">
+                      <span className="rv-calendar-toggle-icon"><CalendarDays size={18} /></span>
+                      <span><small>Selected date</small><strong>{new Date(`${checkIn}T12:00:00`).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}</strong></span>
+                    </div>
+                    <button type="button" className="rv-calendar-toggle" onClick={() => setShowReservationCalendar(value => !value)} aria-expanded={showReservationCalendar}>
+                      <CalendarDays size={16} /> {showReservationCalendar ? 'Hide calendar' : 'View calendar'}
+                    </button>
+                  </div>
+                  {showReservationCalendar && (
+                    <ReservationCalendar
+                      selectedDate={checkIn}
+                      bookedDates={bookedDateCounts}
+                      blockBookedDates={usageType === 'event'}
+                      availableDays={bookingSchedule.availableDays}
+                      minDate={localDate(new Date())}
+                      onSelect={(date) => { changeDate(date); setShowReservationCalendar(false); }}
+                    />
+                  )}
 
                   {reservationDataError && (
 
@@ -2089,20 +2131,19 @@ getDoc(doc(db, 'packages', decodeURIComponent(id))),
 
                 <div className="rv-owner-schedule-summary">
 
-                  <strong>Owner's {usageType === 'event' ? 'event' : usageType === 'overnight' ? 'stay' : 'swimming'} availability</strong>
-
+                  <div className="rv-owner-schedule-heading">
+                    <span className="rv-schedule-icon"><CalendarDays size={18} /></span>
+                    <span><strong>Owner's {usageType === 'event' ? 'event' : usageType === 'overnight' ? 'stay' : 'swimming'} availability</strong><small>Green days are open for booking</small></span>
+                  </div>
                   <div className="rv-schedule-days-inline">
-
-                    {BOOKING_DAYS.map((day) => (
-
-                      <span className={bookingSchedule.availableDays.includes(day.value) ? 'is-available' : 'is-unavailable'} key={day.value}>
-
-                        {day.label.slice(0, 3)}
-
-                      </span>
-
-                    ))}
-
+                    {BOOKING_DAYS.map((day) => {
+                      const available = bookingSchedule.availableDays.includes(day.value);
+                      return (
+                        <span title={`${day.label}: ${available ? 'Available' : 'Unavailable'}`} className={available ? 'is-available' : 'is-unavailable'} key={day.value}>
+                          <b>{day.label.slice(0, 3)}</b><small>{available ? 'Open' : 'Closed'}</small>
+                        </span>
+                      );
+                    })}
                   </div>
 
                   {!isSelectedDateAvailable && (
@@ -2241,15 +2282,15 @@ getDoc(doc(db, 'packages', decodeURIComponent(id))),
 
                   <div className="rv-stepper-row">
 
-                    <div className="rv-stepper-label"><strong>Children</strong><span>Ages 5–17</span></div>
+                    <div className="rv-stepper-label"><strong>Children</strong><span>Ages 4–17</span></div>
 
                     <div className="rv-stepper">
 
-                      <button type="button" className="rv-step minus" disabled={children <= 0} onClick={() => { setChildren(v => Math.max(0, v - 1)); setChildAges(''); }}><Minus size={16} /></button>
+                      <button type="button" className="rv-step minus" disabled={children <= 0} onClick={() => { setChildren(v => Math.max(0, v - 1)); setChildAges(ages => ages.slice(0, Math.max(0, children - 1))); }}><Minus size={16} /></button>
 
                       <span className="rv-count">{children}</span>
 
-                      <button type="button" className="rv-step plus" onClick={() => setChildren(v => Math.min(20, v + 1))}><Plus size={16} /></button>
+                      <button type="button" className="rv-step plus" onClick={() => { setChildren(v => Math.min(20, v + 1)); setChildAges(ages => children < 20 ? [...ages, ''] : ages); }}><Plus size={16} /></button>
 
                     </div>
 
@@ -2279,18 +2320,31 @@ getDoc(doc(db, 'packages', decodeURIComponent(id))),
 
                 </div>
 
-                {children > 0 && freeUnder > 0 && (
-
-                  <div className="rv-field">
-
-                    <label htmlFor="childages">Children's ages (comma-separated)</label>
-
-                    <input id="childages" className="rv-text-input" value={childAges} onChange={e => setChildAges(e.target.value)} placeholder="e.g. 2, 5" />
-
-                    <span className="rv-hint">Children under {freeUnder} years old are free. {freeChildren} currently qualify based on the ages entered.</span>
-
+                {children > 0 && (
+                  <div className="rv-child-ages">
+                    <div className="rv-child-ages-heading">
+                      <div><strong>Children's ages</strong><small>Enter each child's age to calculate the correct total.</small></div>
+                      <span>{enteredAgeCount}/{children} entered</span>
+                    </div>
+                    <div className="rv-child-age-grid">
+                      {Array.from({ length: children }, (_, index) => (
+                        <label className="rv-child-age-field" key={index}>
+                          <span>Child {index + 1}</span>
+                          <input type="number" inputMode="numeric" min="0" max="17" step="1"
+                            aria-label={`Age of child ${index + 1}`} placeholder="Age"
+                            value={childAges[index] ?? ''}
+                            onChange={event => {
+                              const value = event.target.value;
+                              setChildAges(ages => ages.map((age, ageIndex) => ageIndex === index ? value : age));
+                            }}
+                          />
+                        </label>
+                      ))}
+                    </div>
+                    {freeUnder > 0
+                      ? <p className="rv-child-age-note">{freeChildren} child(ren) qualify as free (under {freeUnder}). {chargeableChildren} child(ren) will be charged.</p>
+                      : <p className="rv-child-age-note">Child rates are based on the resort's pricing policy.</p>}
                   </div>
-
                 )}
 
                 {rate.unit === 'hour' && (

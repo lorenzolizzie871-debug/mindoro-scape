@@ -1717,3 +1717,76 @@
     transform: none;
   }
 }
+
+/* =========================================================
+   CONSISTENT USER HEADER PROFILE AVATAR
+   Keep the existing notification (Bell) button unchanged.
+========================================================= */
+
+.dashboard-header {
+  min-height: 72px;
+}
+
+.dashboard-header-actions {
+  gap: 14px;
+}
+
+.dashboard-profile-button {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid #ffffff;
+  outline: 1px solid #d8e6eb;
+  border-radius: 50%;
+  background: #d8edf0;
+  color: #07516b;
+}
+
+.dashboard-profile-button:hover {
+  background: #cce6eb;
+  transform: translateY(-1px);
+}
+
+.dashboard-profile-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.dashboard-profile-button:focus-visible,
+.dashboard-icon-button:focus-visible {
+  outline: 3px solid rgba(8, 123, 145, 0.28);
+  outline-offset: 3px;
+}
+
+@media (max-width: 700px) {
+  .dashboard-header {
+    min-height: 66px;
+    padding-right: 17px;
+    padding-left: 17px;
+  }
+
+  .dashboard-header-actions {
+    gap: 8px;
+  }
+
+  .dashboard-profile-button {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 380px) {
+  .dashboard-header-actions {
+    gap: 6px;
+  }
+
+  .dashboard-profile-button {
+    width: 38px;
+    height: 38px;
+  }
+}

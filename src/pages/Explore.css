@@ -26,20 +26,32 @@
   box-sizing: border-box;
 }
 
-/* HEADER */
+/* HEADER — exact shared UserDashboard header styling */
 .explore-header {
-  min-height: 84px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(7, 81, 107, 0.09);
+  gap: 20px;
+  min-height: 72px;
+  padding: 12px max(24px, calc((100% - 1240px) / 2));
+  box-sizing: border-box;
   margin-bottom: 30px;
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid #edf1f5;
+  box-shadow: 0 3px 15px rgba(7, 59, 83, 0.025);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-.explore-brand {
-  display: flex;
+/* Reuse the same brand classes as UserDashboard */
+.dashboard-brand {
+  display: inline-flex;
   align-items: center;
   gap: 11px;
+  min-width: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -47,67 +59,97 @@
   cursor: pointer;
 }
 
-.explore-brand img {
-  width: 48px;
-  height: 48px;
+.dashboard-brand > img {
+  display: block;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
 }
 
-.explore-brand > span {
+.dashboard-brand-copy {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
 
-.explore-brand strong {
-  color: var(--explore-primary-dark);
+.dashboard-brand-copy strong {
+  color: #073b53;
   font-size: 17px;
-  font-weight: 850;
-}
-
-.explore-brand small {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #78909e;
-  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 1.1px;
+  letter-spacing: -0.5px;
 }
 
-.explore-brand small ion-icon {
-  color: var(--explore-accent);
-  font-size: 13px;
-}
-
-.explore-header-actions {
+.dashboard-brand-copy small {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px;
+  color: #405967;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
 }
 
-.explore-header-icon,
-.explore-avatar {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--explore-border);
+.dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+}
+
+.dashboard-icon-button,
+.dashboard-profile-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 39px;
+  height: 39px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
   border-radius: 50%;
-  background: #fff;
-  color: var(--explore-primary);
-  font-size: 20px;
+  background: transparent;
+  color: #173f51;
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.explore-avatar {
+.dashboard-icon-button:hover,
+.dashboard-profile-button:hover {
+  background: #eaf4f7;
+}
+
+.dashboard-profile-button {
   overflow: hidden;
+  background: #d8edf0;
+  color: #07516b;
 }
 
-.explore-avatar img {
+.dashboard-profile-image {
+  display: block;
   width: 100%;
   height: 100%;
+  border-radius: 50%;
   object-fit: cover;
+  object-position: center;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #087b91;
+}
+
+.dashboard-icon-button:focus-visible,
+.dashboard-profile-button:focus-visible,
+.dashboard-brand:focus-visible {
+  outline: 3px solid rgba(8, 123, 145, 0.28);
+  outline-offset: 3px;
 }
 
 /* INTRO */
@@ -852,6 +894,11 @@
     padding-right: 23px;
     padding-left: 23px;
   }
+
+  .explore-header {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
 }
 
 /* MOBILE */
@@ -867,33 +914,38 @@
   }
 
   .explore-header {
-    min-height: 70px;
+    min-height: 67px;
+    padding: 10px 20px;
+    gap: 10px;
     margin-bottom: 24px;
   }
 
-  .explore-brand {
+  .dashboard-brand {
     gap: 8px;
   }
 
-  .explore-brand img {
-    width: 41px;
-    height: 41px;
+  .dashboard-brand > img {
+    width: 35px;
+    height: 35px;
   }
 
-  .explore-brand strong {
-    font-size: 14px;
+  .dashboard-brand-copy strong {
+    font-size: 15px;
   }
 
-  .explore-brand small {
+  .dashboard-brand-copy small {
     font-size: 8px;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.7px;
   }
 
-  .explore-header-icon,
-  .explore-avatar {
-    width: 37px;
-    height: 37px;
-    font-size: 18px;
+  .dashboard-header-actions {
+    gap: 7px;
+  }
+
+  .dashboard-icon-button,
+  .dashboard-profile-button {
+    width: 34px;
+    height: 34px;
   }
 
   .explore-intro {
@@ -1203,5 +1255,44 @@
   .explore-map-controls button {
     width: 38px;
     height: 38px;
+  }
+}
+
+
+/* =========================================
+   HEADER FULL-WIDTH FIX
+   The header lives inside .explore-shell, which has horizontal padding.
+   Expand the header back to the shell's full width so its background and
+   bottom border are not visibly cut off on mobile.
+   ========================================= */
+
+.explore-shell > .explore-header {
+  width: calc(100% + 68px);
+  margin-left: -34px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 950px) {
+  .explore-shell > .explore-header {
+    width: calc(100% + 46px);
+    margin-left: -23px;
+  }
+}
+
+@media (max-width: 600px) {
+  .explore-shell > .explore-header {
+    width: calc(100% + 28px);
+    margin-left: -14px;
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  .explore-shell > .explore-header {
+    width: calc(100% + 20px);
+    margin-left: -10px;
+    padding-right: 14px;
+    padding-left: 14px;
   }
 }

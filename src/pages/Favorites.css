@@ -27,21 +27,17 @@
   position: sticky;
   top: 0;
   z-index: 50;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-
+  width: 100%;
   min-height: 72px;
-  padding: 12px 20px;
-
+  padding: 12px 24px;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid #edf1f5;
-  box-shadow: 0 3px 15px rgba(7, 59, 83, 0.025);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: #ffffff;
+  border-bottom: 1px solid #e8edf0;
+  box-shadow: none;
 }
 
 .fav-brand {
@@ -58,9 +54,9 @@
 
 .fav-brand > img {
   display: block;
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
 }
 
@@ -72,9 +68,10 @@
 
 .fav-brand-copy strong {
   color: #073b53;
-  font-size: 16px;
+  font-size: 17px;
+  line-height: 1.15;
   font-weight: 800;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.35px;
 }
 
 .fav-brand-copy small {
@@ -82,59 +79,90 @@
   align-items: center;
   gap: 4px;
   color: #405967;
-  font-size: 9px;
+  font-size: 10px;
+  line-height: 1.2;
   font-weight: 800;
   letter-spacing: 1px;
+}
+
+.fav-brand-copy small svg {
+  flex-shrink: 0;
+  color: #087b91;
 }
 
 .fav-header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 17px;
 }
 
-.fav-icon-button {
+.fav-icon-button,
+.fav-profile-button {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  flex: 0 0 39px;
+  width: 39px;
+  height: 39px;
+  padding: 0;
   border: 0;
   border-radius: 50%;
   background: transparent;
   color: #173f51;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.fav-icon-button:hover {
+/* Bell glyph: same lucide-react <Bell size={21} /> used by Explore and UserDashboard. */
+.fav-icon-button > svg {
+  display: block;
+  flex: 0 0 21px;
+  width: 21px;
+  height: 21px;
+  color: #173f51;
+}
+
+.fav-icon-button:hover,
+.fav-profile-button:hover {
   background: #eaf4f7;
 }
 
 .fav-profile-button {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  overflow: hidden;
   background: #d8edf0;
   color: #07516b;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-  overflow: hidden;
+}
+
+.fav-profile-button > svg {
+  flex-shrink: 0;
+}
+
+.fav-profile-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .fav-notification-dot {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 8px;
-  height: 8px;
-  border: 2px solid white;
+  top: 5px;
+  right: 5px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #ffffff;
   border-radius: 50%;
   background: #087b91;
+}
+
+.fav-icon-button:focus-visible,
+.fav-profile-button:focus-visible,
+.fav-brand:focus-visible {
+  outline: 3px solid rgba(8, 123, 145, 0.28);
+  outline-offset: 3px;
 }
 
 /* =========================================================
@@ -796,3 +824,119 @@
   }
 }
 
+
+
+/* =========================================================
+   RESPONSIVE HEADER + PROFILE PHOTO
+   Same scale as UserDashboard / Explore
+========================================================= */
+@media (max-width: 768px) {
+  .fav-header {
+    padding-right: 20px;
+    padding-left: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .fav-header {
+    min-height: 67px;
+    padding: 10px 15px;
+    gap: 10px;
+    background: #ffffff;
+  }
+
+  .fav-brand {
+    gap: 8px;
+  }
+
+  .fav-brand > img {
+    flex-basis: 35px;
+    width: 35px;
+    height: 35px;
+  }
+
+  .fav-brand-copy {
+    gap: 2px;
+  }
+
+  .fav-brand-copy strong {
+    font-size: 15px;
+    line-height: 1.15;
+    letter-spacing: -0.25px;
+  }
+
+  .fav-brand-copy small {
+    font-size: 8px;
+    line-height: 1.2;
+    letter-spacing: 0.7px;
+  }
+
+  .fav-header-actions {
+    gap: 7px;
+  }
+
+  .fav-icon-button,
+  .fav-profile-button {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (max-width: 360px) {
+  .fav-header {
+    padding-right: 11px;
+    padding-left: 11px;
+  }
+
+}
+
+
+/* =========================================================
+   FAVORITES HEADER BELL — MATCH EXPLORE'S 21px BELL (lucide Bell)
+   Keep a 21px visible bell inside the 34px mobile / 39px desktop button.
+========================================================= */
+.favorites-content .fav-header .fav-header-actions > .fav-icon-button {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 39px !important;
+  width: 39px !important;
+  min-width: 39px !important;
+  height: 39px !important;
+  min-height: 39px !important;
+  padding: 0 !important;
+  overflow: visible !important;
+  color: #173f51 !important;
+}
+
+.favorites-content .fav-header .fav-header-actions > .fav-icon-button > svg {
+  display: block;
+  flex: 0 0 21px;
+  width: 21px;
+  height: 21px;
+  color: #173f51;
+}
+
+.favorites-content .fav-header .fav-header-actions > .fav-icon-button > .fav-notification-dot {
+  position: absolute !important;
+  z-index: 2;
+  top: 5px !important;
+  right: 5px !important;
+  width: 9px !important;
+  height: 9px !important;
+  border: 2px solid #ffffff !important;
+  border-radius: 50% !important;
+  background: #087b91 !important;
+}
+
+@media (max-width: 600px) {
+  .favorites-content .fav-header .fav-header-actions > .fav-icon-button {
+    flex-basis: 34px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+  }
+}

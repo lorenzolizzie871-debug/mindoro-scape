@@ -1,8 +1,6 @@
-
 const path = require("path");
 
 // Always load the .env file located beside this index.js file.
-// This works even when the server is started from another working directory.
 require("dotenv").config({
   path: path.join(__dirname, ".env"),
   override: true,
@@ -30,9 +28,9 @@ const PORT = process.env.PORT || 3000;
 // 1. CONFIGURATION
 // ==================================================
 
-const PAYPAL_MODE = (
+const PAYPAL_MODE = String(
   process.env.PAYPAL_MODE || "sandbox"
-).toLowerCase();
+).trim().toLowerCase();
 
 if (!["sandbox", "live"].includes(PAYPAL_MODE)) {
   console.error("Invalid PAYPAL_MODE. Use sandbox or live.");
@@ -44,8 +42,22 @@ const PAYPAL_BASE_URL =
     ? "https://api-m.paypal.com"
     : "https://api-m.sandbox.paypal.com";
 
-const PAYPAL_RETURN_URL = process.env.PAYPAL_RETURN_URL;
-const PAYPAL_CANCEL_URL = process.env.PAYPAL_CANCEL_URL;
+// Trim credentials to avoid accidental whitespace/newlines.
+const PAYPAL_CLIENT_ID = String(
+  process.env.PAYPAL_CLIENT_ID || ""
+).trim();
+
+const PAYPAL_CLIENT_SECRET = String(
+  process.env.PAYPAL_CLIENT_SECRET || ""
+).trim();
+
+const PAYPAL_RETURN_URL = String(
+  process.env.PAYPAL_RETURN_URL || ""
+).trim();
+
+const PAYPAL_CANCEL_URL = String(
+  process.env.PAYPAL_CANCEL_URL || ""
+).trim();
 
 const allowedOrigins = (
   process.env.CLIENT_ORIGINS ||
@@ -79,10 +91,7 @@ app.use(express.json({ limit: "1mb" }));
 // 3. ENVIRONMENT VALIDATION
 // ==================================================
 
-if (
-  !process.env.PAYPAL_CLIENT_ID ||
-  !process.env.PAYPAL_CLIENT_SECRET
-) {
+if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
   console.error(
     "Missing PAYPAL_CLIENT_ID or PAYPAL_CLIENT_SECRET in server/.env"
   );
@@ -159,13 +168,27 @@ function buildReturnUrl(baseUrl, reservationId) {
   return url.toString();
 }
 
+// Safe PayPal error details.
+// Never log or return Client Secret or access tokens.
+function getPayPalErrorDetails(error) {
+  const data = error.response?.data || {};
+
+  return {
+    message:
+      data.error_description ||
+      data.details?.[0]?.description ||
+      data.message ||
+      error.message ||
+      "Unknown PayPal error",
+
+    providerStatus: error.response?.status || null,
+    providerCode: data.name || data.error || null,
+    debugId: data.debug_id || data.debugId || null,
+  };
+}
+
 function getPayPalError(error) {
-  return (
-    error.response?.data?.details?.[0]?.description ||
-    error.response?.data?.message ||
-    error.message ||
-    "Unknown PayPal error"
-  );
+  return getPayPalErrorDetails(error).message;
 }
 
 // Create a consistent receipt number for a reservation.
@@ -207,7 +230,6 @@ function buildPayPalReceipt({
     issuedBy: "paypal_backend",
   };
 }
-
 
 // ==================================================
 // 5A. AUTOMATIC BOOKING CANCELLATION
@@ -300,14 +322,10 @@ async function autoCancelUnconfirmedReservations() {
 
           transaction.update(bookingRef, {
             status: "cancelled",
-
             cancellationType: "system_auto_cancel",
-
             cancellationReason:
               "Automatically cancelled because the resort owner did not confirm before the check-in date.",
-
             autoCancelledAt: FieldValue.serverTimestamp(),
-
             updatedAt: FieldValue.serverTimestamp(),
           });
 
@@ -327,7 +345,6 @@ async function autoCancelUnconfirmedReservations() {
     console.log(
       `[AUTO-CANCEL] Completed. Cancelled ${cancelledCount} booking(s).`
     );
-
   } catch (error) {
     console.error(
       "[AUTO-CANCEL] Error:",
@@ -353,7 +370,6 @@ cron.schedule(
 console.log(
   "[AUTO-CANCEL] Scheduler initialized."
 );
-
 
 // ==================================================
 // 6. FIREBASE AUTHENTICATION
@@ -401,8 +417,12 @@ async function authenticateUser(req, res, next) {
 // ==================================================
 
 async function generateAccessToken() {
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_CLIENT_SECRET) {
+    throw new Error("PayPal credentials are missing.");
+  }
+
   const credentials = Buffer.from(
-    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    `${PAYPAL_CLIENT_ID}:${PAYPAL_CLIENT_SECRET}`
   ).toString("base64");
 
   const response = await axios.post(
@@ -412,6 +432,7 @@ async function generateAccessToken() {
       headers: {
         Authorization: `Basic ${credentials}`,
         "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
       },
       timeout: 20000,
     }
@@ -450,15 +471,25 @@ app.get("/api/paypal/test", async (req, res) => {
       message: `PayPal ${PAYPAL_MODE.toUpperCase()} connection successful!`,
     });
   } catch (error) {
+    const details = getPayPalErrorDetails(error);
+
     console.error(
-      "PayPal connection error:",
-      getPayPalError(error)
+      "[PAYPAL TEST] Authentication failed:",
+      details
     );
 
-    return res.status(500).json({
+    return res.status(502).json({
       success: false,
-      message:
-        "PayPal authentication failed. Check your credentials and mode.",
+      message: "PayPal authentication failed.",
+      providerStatus: details.providerStatus,
+      providerCode: details.providerCode,
+      providerMessage: details.message,
+      debugId: details.debugId,
+      mode: PAYPAL_MODE,
+      credentialsPresent: {
+        clientId: Boolean(PAYPAL_CLIENT_ID),
+        clientSecret: Boolean(PAYPAL_CLIENT_SECRET),
+      },
     });
   }
 });
@@ -630,14 +661,20 @@ app.post(
         reservationId,
       });
     } catch (error) {
+      const details = getPayPalErrorDetails(error);
+
       console.error(
-        "Create PayPal order error:",
-        getPayPalError(error)
+        "[PAYPAL CREATE ORDER] Failed:",
+        details
       );
 
-      return res.status(500).json({
+      return res.status(502).json({
         success: false,
         message: "Unable to create PayPal order.",
+        providerStatus: details.providerStatus,
+        providerCode: details.providerCode,
+        providerMessage: details.message,
+        debugId: details.debugId,
       });
     }
   }
@@ -1017,24 +1054,29 @@ app.post(
       });
 
     } catch (error) {
+      const details = getPayPalErrorDetails(error);
+
       console.error(
-        "Capture PayPal payment error:",
-        getPayPalError(error)
+        "[PAYPAL CAPTURE] Failed:",
+        details
       );
 
-      return res.status(500).json({
+      return res.status(502).json({
         success: false,
         message:
           "Unable to verify PayPal payment. Check the PayPal order status before retrying.",
+        providerStatus: details.providerStatus,
+        providerCode: details.providerCode,
+        providerMessage: details.message,
+        debugId: details.debugId,
       });
     }
   }
 );
 
-
- // ==================================================
- // 12. OPENWEATHER API INTEGRATION
- // ==================================================
+// ==================================================
+// 12. OPENWEATHER API INTEGRATION
+// ==================================================
 
 const OPENWEATHER_API_KEY = String(
   process.env.OPENWEATHER_API_KEY || ""
@@ -1397,7 +1439,7 @@ app.get("/api/weather/test-connection", async (req, res) => {
 });
 
 // ==================================================
-// 12. NOT FOUND HANDLER
+// 13. NOT FOUND HANDLER
 // ==================================================
 
 app.use((req, res) => {
@@ -1408,7 +1450,7 @@ app.use((req, res) => {
 });
 
 // ==================================================
-// 13. GLOBAL ERROR HANDLER
+// 14. GLOBAL ERROR HANDLER
 // ==================================================
 
 app.use((err, req, res, next) => {
@@ -1425,7 +1467,7 @@ app.use((err, req, res, next) => {
 });
 
 // ==================================================
-// 14. START SERVER
+// 15. START SERVER
 // ==================================================
 
 app.listen(PORT, () => {
@@ -1435,6 +1477,12 @@ app.listen(PORT, () => {
   console.log("Firebase Admin: connected");
   console.log(`Server: http://localhost:${PORT}`);
   console.log(`PayPal mode: ${PAYPAL_MODE}`);
+  console.log(
+    `PayPal Client ID: ${PAYPAL_CLIENT_ID ? "loaded" : "MISSING"}`
+  );
+  console.log(
+    `PayPal Client Secret: ${PAYPAL_CLIENT_SECRET ? "loaded" : "MISSING"}`
+  );
   console.log(
     `OpenWeather key: ${OPENWEATHER_API_KEY ? "loaded" : "MISSING"}`
   );
