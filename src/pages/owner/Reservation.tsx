@@ -1050,7 +1050,11 @@ const Reservation: React.FC = () => {
       if (paymentMethod === 'paypal') {
         const idToken = await user.getIdToken();
 
-        const response = await fetch('http://localhost:3000/api/paypal/create-order', {
+        const API_URL = String(
+  (import.meta as any).env?.VITE_API_URL || 'http://localhost:3000'
+).replace(/\/+$/, '');
+
+const response = await fetch(`${API_URL}/api/paypal/create-order`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

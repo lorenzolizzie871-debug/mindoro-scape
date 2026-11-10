@@ -117,24 +117,34 @@ try {
 // 4. FIREBASE ADMIN INITIALIZATION
 // ==================================================
 
+
 const serviceAccountPath = path.join(
   __dirname,
   "serviceAccountKey.json"
 );
 
-if (!fs.existsSync(serviceAccountPath)) {
-  console.error(
-    "Firebase serviceAccountKey.json is missing from the server folder."
-  );
-  process.exit(1);
-}
-
 let db;
 let firebaseAuth;
 
 try {
-  const serviceAccount = require(serviceAccountPath);
+  let serviceAccount;
 
+  // Render: read the service-account JSON from an environment variable.
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+    serviceAccount = JSON.parse(
+      process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+    );
+  }
+  // Local development: use the ignored service-account JSON file.
+  else if (fs.existsSync(serviceAccountPath)) {
+    serviceAccount = require(serviceAccountPath);
+  } else {
+    throw new Error(
+      "Firebase credentials are missing. Set FIREBASE_SERVICE_ACCOUNT_JSON or provide server/serviceAccountKey.json."
+    );
+  }
+
+  // Initialize Firebase Admin exactly once before accessing services.
   initializeApp({
     credential: cert(serviceAccount),
   });
@@ -144,7 +154,10 @@ try {
 
   console.log("Firebase Admin connected successfully.");
 } catch (error) {
-  console.error("Firebase Admin initialization failed:", error);
+  console.error(
+    "Firebase Admin initialization failed:",
+    error.message
+  );
   process.exit(1);
 }
 
