@@ -26,6 +26,8 @@ import {
   saveOutline,
 } from 'ionicons/icons';
 import { onAuthStateChanged, updateProfile } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
+import imageCompression from 'browser-image-compression';
 import {
   collection,
   doc,
@@ -38,12 +40,7 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore';
-import {
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from 'firebase/storage';
-import { auth, db, storage } from '../../firebase';
+import { auth, db } from '../../firebase';
 import './OwnerSettings.css';
 
 type OwnerSettingsProps = {
@@ -128,7 +125,8 @@ const OwnerSettings: React.FC<OwnerSettingsProps> = ({
           uid: user.uid,
           displayName: user.displayName || data.displayName || data.fullName || data.name || '',
           email: user.email || data.email || '',
-          photoURL: user.photoURL || data.photoURL || data.profilePicture || '',
+          // Firestore Base64 values take priority over any old Auth/Storage URL.
+          photoURL: data.photoURL || data.profilePicture || user.photoURL || '',
           resortName: data.resortName || data.businessName || initialResortName || '',
           resortLocation: data.resortLocation || data.location || initialLocation || '',
           resortPhotoURL: data.resortPhotoURL || data.coverPhotoURL || data.businessPhotoURL || '',
@@ -175,46 +173,93 @@ const OwnerSettings: React.FC<OwnerSettingsProps> = ({
     window.setTimeout(() => setNotice(''), 3500);
   };
 
+  // Same Base64 image flow used by the Traveler Profile page.
+  const convertToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        if (typeof reader.result === 'string') resolve(reader.result);
+        else reject(new Error('The selected image could not be converted.'));
+      };
+      reader.onerror = () => reject(new Error('Unable to read the selected image.'));
+    });
+
   const uploadImage = async (file: File, kind: 'owner' | 'resort') => {
-    if (!uid) return;
-    if (!file.type.startsWith('image/')) {
-      setError('Please choose an image file.');
+    if (!uid) {
+      setError('Your account session is missing. Please sign in again.');
       return;
     }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Please choose a JPG, PNG, or WEBP image.');
+      return;
+    }
+
     if (file.size > 5 * 1024 * 1024) {
       setError('Image must be 5 MB or smaller.');
       return;
     }
+
+    const currentUser = auth.currentUser;
+    if (!currentUser || currentUser.uid !== uid) {
+      setError('Please sign in again before uploading a picture.');
+      return;
+    }
+
     setUploading(kind);
     setError('');
-    try {
-      const extension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      const storagePath = kind === 'owner'
-        ? `ownerProfiles/${uid}/profile-${Date.now()}.${extension}`
-        : `ownerResorts/${uid}/resort-${Date.now()}.${extension}`;
-      const imageRef = ref(storage, storagePath);
-      await uploadBytes(imageRef, file, { contentType: file.type });
-      const imageURL = await getDownloadURL(imageRef);
+    setNotice('');
 
+    try {
+      // Compress each image to approximately 100 KB and 400px max dimension.
+      // This keeps the Base64 value comfortably below Firestore's document limit.
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 0.1,
+        maxWidthOrHeight: 400,
+        useWebWorker: true,
+        fileType: 'image/jpeg',
+        initialQuality: 0.8,
+      });
+
+      const base64Image = await convertToBase64(compressedFile);
+      const imageField = kind === 'owner' ? 'photoURL' : 'resortPhotoURL';
+
+      // Save Base64 directly in the existing users/{uid} document.
+      await setDoc(
+        doc(db, 'users', uid),
+        {
+          [imageField]: base64Image,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // Do not upload profile photos to Firebase Storage.
       if (kind === 'owner') {
-        await updateProfile(auth.currentUser!, { photoURL: imageURL });
-        await setDoc(doc(db, 'users', uid), {
-          photoURL: imageURL,
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
-        setProfile((current) => ({ ...current, photoURL: imageURL }));
-        showNotice('Profile picture updated.');
+        setProfile((current) => ({ ...current, photoURL: base64Image }));
+        showNotice('Owner profile picture updated successfully.');
       } else {
-        await setDoc(doc(db, 'users', uid), {
-          resortPhotoURL: imageURL,
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
-        setProfile((current) => ({ ...current, resortPhotoURL: imageURL }));
-        showNotice('Resort photo updated.');
+        setProfile((current) => ({ ...current, resortPhotoURL: base64Image }));
+        showNotice('Resort profile photo updated successfully.');
       }
-    } catch (err) {
-      console.error('Image upload failed:', err);
-      setError('Image upload failed. Check Firebase Storage rules and try again.');
+    } catch (err: unknown) {
+      console.error(`${kind} Base64 image save failed:`, err);
+
+      if (err instanceof FirebaseError) {
+        if (err.code === 'permission-denied') {
+          setError('Firestore denied the image update. Please check the users/{uid} Firestore security rules.');
+        } else if (err.code === 'resource-exhausted' || err.code === 'invalid-argument') {
+          setError('The image could not be saved. Try a smaller or clearer image.');
+        } else {
+          setError(`Image save failed (${err.code}). Please try again.`);
+        }
+      } else if (err instanceof Error) {
+        setError(err.message || 'Image upload failed. Please try again.');
+      } else {
+        setError('Image upload failed. Please check your connection and try again.');
+      }
     } finally {
       setUploading('');
     }

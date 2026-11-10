@@ -221,13 +221,21 @@ type ResortDoc = {
   locationLabel?: string;
 
   address?: string;
+
   latitude?: number;
+
   longitude?: number;
+
   lat?: number;
+
   lon?: number;
+
   lng?: number;
+
   municipality?: string;
+
   city?: string;
+
   coordinates?: { latitude?: number; longitude?: number; lat?: number; lng?: number };
 
   imageUrl?: string;
@@ -245,6 +253,12 @@ type ResortDoc = {
   childFreeUnderAge?: number | null;
 
   availability?: string;
+
+  suspended?: boolean;
+  isSuspended?: boolean;
+  suspensionReason?: string;
+  suspendedAt?: unknown;
+  suspendedBy?: string;
 
   ownerId?: string;
 
@@ -527,31 +541,46 @@ const ReservationCalendar: React.FC<ReservationCalendarProps> = ({
 };
 
 type ResortWeather = {
+
   location?: string;
+
   temperature?: number;
+
   feelsLike?: number;
+
   humidity?: number;
+
   condition?: string;
+
   description?: string;
+
   windSpeed?: number;
+
   timestamp?: number;
+
 };
 
 const WEATHER_API_BASE_URL = String(import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 // Accept common Philippine mobile formats and store one consistent international format.
+
 // Valid examples: 09171234567, 9171234567, 639171234567, +639171234567.
+
 const normalizePhilippineMobile = (value: string): string | null => {
+
   const digits = String(value || '').replace(/\D/g, '');
+
   let national = digits;
 
   if (national.startsWith('63')) national = national.slice(2);
+
   if (national.startsWith('0')) national = national.slice(1);
 
   if (!/^9\d{9}$/.test(national)) return null;
-  return `+63${national}`;
-};
 
+  return `+63${national}`;
+
+};
 
 const Reservation: React.FC = () => {
 
@@ -618,9 +647,87 @@ const Reservation: React.FC = () => {
   const [reservationsLoaded, setReservationsLoaded] = useState(false);
 
   const [reservationDataError, setReservationDataError] = useState('');
+
   const [resortWeather, setResortWeather] = useState<ResortWeather | null>(null);
+
   const [resortWeatherLoading, setResortWeatherLoading] = useState(false);
+
   const [resortWeatherError, setResortWeatherError] = useState('');
+
+  const [bookingControl, setBookingControl] = useState({
+    platformSuspended: false,
+    bookingsEnabled: true,
+    emergencyMode: false,
+    message: '',
+    bookingNotice: '',
+    loaded: false,
+  });
+
+  const [resortSuspended, setResortSuspended] = useState(false);
+  const [bookingBlockMessage, setBookingBlockMessage] = useState('');
+  const isBookingSuspended = Boolean(bookingBlockMessage);
+
+
+  // Keep platform and booking controls in sync with the Admin Dashboard.
+  // These are also re-checked from Firestore immediately before creating a reservation.
+  useEffect(() => {
+    const platformRef = doc(db, 'systemSettings', 'platformControl');
+    const bookingRef = doc(db, 'systemSettings', 'bookingAvailability');
+
+    const unsubscribePlatform = onSnapshot(platformRef, (snapshot) => {
+      const data = snapshot.exists() ? snapshot.data() : {};
+      setBookingControl((current) => ({
+        ...current,
+        platformSuspended: data.suspended === true,
+        message: String(data.message || ''),
+      }));
+    });
+
+    const unsubscribeBookings = onSnapshot(bookingRef, (snapshot) => {
+      const data = snapshot.exists() ? snapshot.data() : {};
+      setBookingControl((current) => ({
+        ...current,
+        bookingsEnabled: data.bookingsEnabled !== false,
+        emergencyMode: data.emergencyMode === true,
+        bookingNotice: String(data.notice || data.bookingNotice || data.message || '').trim(),
+        loaded: true,
+      }));
+    });
+
+    return () => {
+      unsubscribePlatform();
+      unsubscribeBookings();
+    };
+  }, []);
+
+  useEffect(() => {
+    setResortSuspended(
+      resort?.suspended === true ||
+      resort?.isSuspended === true ||
+      String(resort?.status || '').toLowerCase() === 'suspended'
+    );
+  }, [resort]);
+
+  useEffect(() => {
+    // Global booking availability takes priority for the message shown to guests.
+    // The Admin Dashboard's "Booking notice" is stored on systemSettings/bookingAvailability.
+    if (!bookingControl.bookingsEnabled || bookingControl.emergencyMode) {
+      setBookingBlockMessage(
+        bookingControl.bookingNotice ||
+        'New reservations are temporarily paused by the platform administrator.'
+      );
+    } else if (bookingControl.platformSuspended) {
+      setBookingBlockMessage(
+        bookingControl.message || 'Mindoro Scape is temporarily unavailable. New reservations are currently paused.'
+      );
+    } else if (resortSuspended) {
+      setBookingBlockMessage(
+        resort?.suspensionReason || 'This resort is temporarily unavailable for new reservations.'
+      );
+    } else {
+      setBookingBlockMessage('');
+    }
+  }, [bookingControl, resortSuspended, resort]);
 
   useEffect(() => {
 
@@ -665,51 +772,91 @@ const Reservation: React.FC = () => {
   }, [id]);
 
   // Weather on the reservation page is based on the resort's own saved coordinates/location,
+
   // never the guest's device location.
+
   useEffect(() => {
+
     if (!resort) return;
+
     const resortRecord = resort as ResortDoc & Record<string, any>;
+
     const coords = resortRecord.coordinates || {};
+
     const lat = Number(resortRecord.latitude ?? resortRecord.lat ?? coords.latitude ?? coords.lat);
+
     const lon = Number(resortRecord.longitude ?? resortRecord.lon ?? resortRecord.lng ?? coords.longitude ?? coords.lng);
+
     const hasCoordinates =
+
       Number.isFinite(lat) && Number.isFinite(lon) &&
+
       lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
 
     const locationText = String(
+
       resortRecord.municipality || resortRecord.city || resortRecord.locationLabel ||
+
       resortRecord.resortLocation || resortRecord.address || ''
+
     ).trim();
 
     const params = hasCoordinates
+
       ? `lat=${encodeURIComponent(String(lat))}&lon=${encodeURIComponent(String(lon))}`
+
       : `city=${encodeURIComponent(locationText || 'Victoria,PH')}`;
 
     const controller = new AbortController();
+
     const loadResortWeather = async () => {
+
       setResortWeatherLoading(true);
+
       setResortWeatherError('');
+
       try {
+
         const response = await fetch(
+
           `${WEATHER_API_BASE_URL}/api/weather/current?${params}`,
+
           { signal: controller.signal }
+
         );
+
         const result = await response.json();
+
         if (!response.ok || !result.success || !result.data) {
+
           throw new Error(result.message || 'Weather for this resort is temporarily unavailable.');
+
         }
+
         setResortWeather(result.data as ResortWeather);
+
       } catch (weatherError) {
+
         if (weatherError instanceof Error && weatherError.name === 'AbortError') return;
+
         console.error('Unable to load resort weather:', weatherError);
+
         setResortWeatherError(weatherError instanceof Error ? weatherError.message : 'Unable to load resort weather.');
+
         setResortWeather(null);
+
       } finally {
+
         if (!controller.signal.aborted) setResortWeatherLoading(false);
+
       }
+
     };
+
     void loadResortWeather();
+
     return () => controller.abort();
+
   }, [resort]);
 
   // Live booking data drives the calendar. Pending requests also reserve a venue date
@@ -1142,6 +1289,73 @@ useEffect(() => {
 
     }
 
+    // Re-check all admin controls directly from Firestore at submit time.
+    // This prevents stale page state from allowing a booking after an admin suspension.
+    try {
+      const [platformSnap, bookingSnap, resortSnap, userSnap] = await Promise.all([
+        getDoc(doc(db, 'systemSettings', 'platformControl')),
+        getDoc(doc(db, 'systemSettings', 'bookingAvailability')),
+getDoc(doc(db, 'packages', decodeURIComponent(id))),
+        getDoc(doc(db, 'users', user.uid)),
+      ]);
+
+      const platformData: Record<string, any> = platformSnap.exists() ? (platformSnap.data() as Record<string, any>) : {};
+      const bookingData: Record<string, any> = bookingSnap.exists() ? (bookingSnap.data() as Record<string, any>) : {};
+      if (!resortSnap.exists()) {
+        setError('This resort listing is no longer available. Please return to the resort page.');
+        return;
+      }
+      const latestResort: Record<string, any> = resortSnap.data() as Record<string, any>;
+      const userData: Record<string, any> = userSnap.exists() ? (userSnap.data() as Record<string, any>) : {};
+
+      if (
+        userData.suspended === true ||
+        userData.isSuspended === true ||
+        String(userData.accountStatus || '').toLowerCase() === 'suspended'
+      ) {
+        setError(
+          userData.suspensionReason
+            ? `Your account is suspended: ${userData.suspensionReason}`
+            : 'Your account is currently suspended. Please contact Mindoro Scape support.'
+        );
+        return;
+      }
+
+      // Check global booking availability first so the guest sees the exact
+      // notice entered in Admin Dashboard > Global Booking Availability.
+      if (bookingData.bookingsEnabled === false || bookingData.emergencyMode === true) {
+        setError(
+          String(bookingData.notice || bookingData.bookingNotice || bookingData.message || '').trim() ||
+          'New reservations are temporarily paused by the platform administrator due to a service or safety advisory.'
+        );
+        return;
+      }
+
+      if (platformData.suspended === true) {
+        setError(
+          platformData.message ||
+          'Mindoro Scape is temporarily unavailable. New reservations are currently paused.'
+        );
+        return;
+      }
+
+      if (
+        latestResort.suspended === true ||
+        latestResort.isSuspended === true ||
+        String(latestResort.status || '').toLowerCase() === 'suspended'
+      ) {
+        setError(
+          latestResort.suspensionReason ||
+          'This resort is temporarily unavailable for new reservations.'
+        );
+        return;
+      }
+    } catch (controlError) {
+      console.error('Unable to verify current booking controls:', controlError);
+      setError('We could not verify booking availability. Please refresh the page and try again.');
+      return;
+    }
+
     if (!rate) {
 
       setError('This listing has no valid pricing option. Please contact the resort owner.');
@@ -1175,15 +1389,22 @@ useEffect(() => {
     }
 
     const normalizedPhone = normalizePhilippineMobile(phone);
+
     if (!phone.trim()) {
+
       setError('Please enter your Philippine mobile number. This is required for booking updates.');
+
       return;
-    }
-    if (!normalizedPhone) {
-      setError('Invalid mobile number. Enter a valid Philippine mobile number, e.g. +63 917 123 4567.');
-      return;
+
     }
 
+    if (!normalizedPhone) {
+
+      setError('Invalid mobile number. Enter a valid Philippine mobile number, e.g. +63 917 123 4567.');
+
+      return;
+
+    }
 
     const today = localDate(new Date());
 
@@ -1465,7 +1686,7 @@ useEffect(() => {
 
         const idToken = await user.getIdToken();
 
-        const response = await fetch(`${String((import.meta as any).env?.VITE_API_URL || '').replace(/\/+$/, '')}/api/paypal/create-order`, {
+        const response = await fetch(`${String((import.meta as any).env?.VITE_API_URL || '').replace(/\/$/, '')}/api/paypal/create-order`, {
 
           method: 'POST',
 
@@ -1503,7 +1724,7 @@ useEffect(() => {
 
           parsedUrl.protocol !== 'https:' ||
 
-          parsedUrl.hostname !== 'www\.sandbox.paypal.com'
+          parsedUrl.hostname !== 'www.sandbox.paypal.com'
 
         ) {
 
@@ -1650,34 +1871,97 @@ useEffect(() => {
           </div>
 
           <section className="rv-resort-weather" aria-label="Weather at this resort">
+
             <div className="rv-resort-weather-heading">
+
               <div>
+
                 <span className="rv-resort-weather-eyebrow">WEATHER AT THIS RESORT</span>
+
                 <strong>{resortWeather?.location || resortLocation}</strong>
+
               </div>
+
               <span className="rv-resort-weather-icon" aria-hidden="true">☀</span>
+
             </div>
+
             {resortWeatherLoading && !resortWeather ? (
+
               <p className="rv-resort-weather-message">Loading resort weather...</p>
+
             ) : resortWeatherError && !resortWeather ? (
+
               <p className="rv-resort-weather-message">{resortWeatherError}</p>
+
             ) : resortWeather ? (
+
               <>
+
                 <div className="rv-resort-weather-reading">
+
                   <strong>{Math.round(Number(resortWeather.temperature ?? 0))}°C</strong>
+
                   <span>{resortWeather.description || resortWeather.condition || 'Current conditions'}</span>
+
                 </div>
+
                 <div className="rv-resort-weather-metrics">
+
                   <span>Humidity <b>{resortWeather.humidity ?? '—'}%</b></span>
+
                   <span>Wind <b>{Number(resortWeather.windSpeed || 0).toFixed(1)} m/s</b></span>
+
                   <span>Feels like <b>{Math.round(Number(resortWeather.feelsLike ?? resortWeather.temperature ?? 0))}°C</b></span>
+
                 </div>
+
                 <small>Current conditions for the resort location. Weather can change.</small>
+
               </>
+
             ) : (
+
               <p className="rv-resort-weather-message">Weather information is currently unavailable.</p>
+
             )}
+
           </section>
+
+          {isBookingSuspended && (
+  <div
+    className="rv-schedule-warning"
+    role="alert"
+    aria-live="assertive"
+    style={{
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '12px',
+      margin: '16px 0',
+      padding: '16px',
+      borderRadius: '14px',
+      border: '1px solid #f0c36d',
+      background: '#fff8e8',
+      color: '#805b16',
+      lineHeight: 1.5,
+    }}
+  >
+    <div style={{ fontSize: '24px', flexShrink: 0 }} aria-hidden="true">
+      🌧️
+    </div>
+
+    <div style={{ flex: 1 }}>
+      <strong style={{ display: 'block', fontSize: '14px', marginBottom: '5px' }}>
+        Reservations Temporarily Suspended
+      </strong>
+
+      <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.6 }}>
+        {bookingBlockMessage ||
+          'Reservations are temporarily unavailable due to severe weather conditions. Please check back for updates.'}
+      </p>
+    </div>
+  </div>
+)}
 
           <form onSubmit={submit} noValidate>
 
@@ -2202,17 +2486,29 @@ useEffect(() => {
                   <label htmlFor="guestphone">Mobile number *</label>
 
                   <input
+
                     className="rv-text-input"
+
                     id="guestphone"
+
                     type="tel"
+
                     inputMode="tel"
+
                     autoComplete="tel"
+
                     value={phone}
+
                     onChange={e => setPhone(e.target.value.replace(/[^0-9+()\s-]/g, '').slice(0, 20))}
+
                     placeholder="+63 917 123 4567"
+
                     aria-describedby="guestphone-hint"
+
                     required
+
                   />
+
                   <small className="rv-hint" id="guestphone-hint">Use a Philippine mobile number. Example: +63 917 123 4567. Numbers starting with 09 are also accepted.</small>
 
                 </div>
@@ -2325,7 +2621,7 @@ useEffect(() => {
 
                   <ShieldCheck size={19} />
 
-                  <p>Reservation is pending until the resort confirms availability. PayPal payment status must be verified by the backend before marking this reservation as paid.</p>
+                  <p>Reservation is pending until the resort confirms availability. </p>
 
                 </div>
 
@@ -2335,7 +2631,7 @@ useEffect(() => {
 
             {error && <div className="rv-submit-error" role="alert">{error}</div>}
 
-            <button className="rv-submit-button" type="submit" disabled={submitting || !userReady}>
+            <button className="rv-submit-button" type="submit" disabled={submitting || !userReady || !bookingControl.loaded || Boolean(bookingBlockMessage)}>
 
               {submitting ? 'Processing…' : paymentMethod === 'paypal' ? 'Continue to PayPal Checkout' : 'Submit Reservation Request'}
 

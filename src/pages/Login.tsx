@@ -1,56 +1,99 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { IonContent, IonPage } from '@ionic/react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore'; // ✅ Idinagdag ang setDoc at serverTimestamp
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
+} from 'firebase/auth';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft, ShieldAlert, Mail, CheckCircle2 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import './Login.css';
 
 const LOGO_PATH = '/assets/mindoro-scape-logo.png';
+const DEFAULT_SUSPENSION_MESSAGE =
+  'Mindoro Scape is temporarily suspended. User and owner login are unavailable for now. Please try again later.';
+
+type PortalRole = 'user' | 'owner' | 'admin';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const requestedRole = (searchParams.get('role') || 'user') as PortalRole;
+  const roleParam: PortalRole = ['user', 'owner', 'admin'].includes(requestedRole)
+    ? requestedRole
+    : 'user';
+
+  const isOwner = roleParam === 'owner';
+  const isAdmin = roleParam === 'admin';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [platformSuspended, setPlatformSuspended] = useState(false);
+  const [suspensionMessage, setSuspensionMessage] = useState(DEFAULT_SUSPENSION_MESSAGE);
 
-  // ✅ Alamin kung anong portal ang binuksan base sa URL
-  const searchParams = new URLSearchParams(location.search);
-  const roleParam = searchParams.get('role') || 'user';
-  
-  const isOwner = roleParam === 'owner';
-  const isAdmin = roleParam === 'admin';
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
 
-  // Dynamic texts base sa role
-  const headingText = isAdmin ? 'Admin Portal' : isOwner ? 'Owner Portal' : 'Welcome Back';
-  const titleText = isAdmin ? 'Sign in as Administrator' : isOwner ? 'Manage your resort' : 'Login to your account';
-  const descText = isAdmin 
-    ? 'Secure access for system administrators.' 
-    : isOwner 
-      ? 'Log in to manage your listings and bookings in Oriental Mindoro.' 
+  const headingText = isAdmin
+    ? 'Admin Portal'
+    : isOwner
+      ? 'Manage your resort'
+      : 'Welcome Back';
+
+  const descText = isAdmin
+    ? 'Secure access for system administrators.'
+    : isOwner
+      ? 'Log in to manage your listings and bookings in Oriental Mindoro.'
       : 'Enter your account details to continue discovering beautiful resorts in Oriental Mindoro.';
+
   const btnText = isAdmin ? 'Login as Admin' : isOwner ? 'Login as Owner' : 'Login';
+
+  // Live status keeps the login page notice current when the administrator
+  // enables or removes platform suspension.
+  useEffect(() => {
+    const platformRef = doc(db, 'systemSettings', 'platformControl');
+
+    const unsubscribe = onSnapshot(
+      platformRef,
+      (snapshot) => {
+        const data = snapshot.exists() ? snapshot.data() : {};
+        const suspended = data.suspended === true;
+        setPlatformSuspended(suspended);
+
+        const message = String(data.message || data.suspensionMessage || '').trim();
+        setSuspensionMessage(message || DEFAULT_SUSPENSION_MESSAGE);
+      },
+      (error) => {
+        console.error('Platform suspension listener failed:', error);
+      }
+    );
+
+    return unsubscribe;
+  }, []);
+
+  const validateEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (loading) return;
+
     setErrorMessage('');
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!normalizedEmail) {
-      setErrorMessage('Please enter your email address.');
-      return;
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    if (!validateEmail(normalizedEmail)) {
       setErrorMessage('Please enter a valid email address.');
       return;
     }
@@ -60,64 +103,76 @@ const Login: React.FC = () => {
       return;
     }
 
+    setLoading(true);
+
     try {
-      setLoading(true);
+      const credential = await signInWithEmailAndPassword(
+        auth,
+        normalizedEmail,
+        password
+      );
 
-      // 1. Login sa Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(auth, normalizedEmail, password);
-      const user = userCredential.user;
+      const signedInUser = credential.user;
+      const profileRef = doc(db, 'users', signedInUser.uid);
+      const [profileSnapshot, platformSnapshot] = await Promise.all([
+        getDoc(profileRef),
+        getDoc(doc(db, 'systemSettings', 'platformControl')),
+      ]);
 
-      // 2. Kunin ang role sa Firestore
-      const docRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(docRef);
-      
-      let actualRole = roleParam; // Default natin sa role ng URL parameter (e.g. user, owner)
-
-      // ✅ KUNG WALA SA FIRESTORE, GAWAN NATIN NG RECORD
-      if (!docSnap.exists()) {
-        console.log('User not found in Firestore, creating record automatically...');
-        
-        // Gagawin nating 'owner' kung nasa owner portal siya, kung hindi 'user'
-        const newRole = roleParam === 'owner' ? 'owner' : (roleParam === 'admin' ? 'admin' : 'user');
-        
-        await setDoc(docRef, {
-          uid: user.uid,
-          email: normalizedEmail,
-          fullName: user.displayName || 'Explorer',
-          role: newRole,
-          createdAt: serverTimestamp(),
-        });
-        
-        actualRole = newRole;
-      } else {
-        actualRole = docSnap.data().role || 'user';
-      }
-
-      // 3. Security Check: Kung User portal, dapat 'user' ang role
-      if (roleParam === 'user' && actualRole !== 'user') {
-        setErrorMessage('This is not a Traveler account. Please use the correct portal.');
-        await auth.signOut();
-        setLoading(false);
+      // Never create a user/owner/admin profile automatically during login.
+      // Roles must be assigned through the trusted registration/admin workflow.
+      if (!profileSnapshot.exists()) {
+        await signOut(auth);
+        setErrorMessage(
+          'Your account profile could not be found. Please contact the administrator.'
+        );
         return;
       }
 
-      // Kung Owner portal, dapat 'owner' ang role
-      if (roleParam === 'owner' && actualRole !== 'owner') {
-        setErrorMessage('This is not an Owner account. Please use the correct portal.');
-        await auth.signOut();
-        setLoading(false);
+      const profile = profileSnapshot.data();
+      const actualRole = String(profile.role || 'user').toLowerCase();
+      const platformData = platformSnapshot.exists() ? platformSnapshot.data() : {};
+      const suspended = platformData.suspended === true;
+
+      const adminMessage = String(
+        platformData.message || platformData.suspensionMessage || ''
+      ).trim();
+
+      if (actualRole !== roleParam) {
+        await signOut(auth);
+        setErrorMessage(
+          actualRole === 'owner'
+            ? 'This is an Owner account. Please use the Owner Portal.'
+            : actualRole === 'admin'
+              ? 'This is an Admin account. Please use the Admin Portal.'
+              : 'This is a Traveler account. Please use the Traveler Portal.'
+        );
         return;
       }
 
-      // Kung Admin portal, dapat 'admin' ang role
-      if (roleParam === 'admin' && actualRole !== 'admin') {
-        setErrorMessage('This is not an Admin account.');
-        await auth.signOut();
-        setLoading(false);
+      // Only a verified admin profile may pass while the platform is suspended.
+      if (suspended && actualRole !== 'admin') {
+        await signOut(auth);
+        setPlatformSuspended(true);
+        setSuspensionMessage(adminMessage || DEFAULT_SUSPENSION_MESSAGE);
+        setErrorMessage(adminMessage || DEFAULT_SUSPENSION_MESSAGE);
         return;
       }
 
-      // 4. Redirect base sa totoong role
+      const accountSuspended =
+        profile.suspended === true ||
+        profile.isSuspended === true ||
+        String(profile.accountStatus || '').toLowerCase() === 'suspended';
+
+      if (accountSuspended && actualRole !== 'admin') {
+        await signOut(auth);
+        setErrorMessage(
+          String(profile.suspensionReason || '').trim() ||
+            'Your account is currently suspended. Please contact the administrator.'
+        );
+        return;
+      }
+
       if (actualRole === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else if (actualRole === 'owner') {
@@ -125,7 +180,6 @@ const Login: React.FC = () => {
       } else {
         navigate('/user/dashboard', { replace: true });
       }
-
     } catch (error: unknown) {
       console.error('Login error:', error);
 
@@ -135,10 +189,8 @@ const Login: React.FC = () => {
             setErrorMessage('Your email address is invalid.');
             break;
           case 'auth/user-not-found':
-            setErrorMessage('No account was found with this email address.');
-            break;
-          case 'auth/wrong-password':
           case 'auth/invalid-credential':
+          case 'auth/wrong-password':
             setErrorMessage('Incorrect email or password.');
             break;
           case 'auth/too-many-requests':
@@ -146,6 +198,9 @@ const Login: React.FC = () => {
             break;
           case 'auth/network-request-failed':
             setErrorMessage('Connection failed. Please check your internet.');
+            break;
+          case 'permission-denied':
+            setErrorMessage('You do not have permission to access this account.');
             break;
           default:
             setErrorMessage('Unable to log in right now. Please try again.');
@@ -155,6 +210,61 @@ const Login: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openForgotPassword = () => {
+    setResetEmail(email.trim());
+    setResetMessage('');
+    setResetError('');
+    setShowForgotPassword(true);
+  };
+
+  const handlePasswordReset = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (resetLoading) return;
+
+    const normalizedEmail = resetEmail.trim().toLowerCase();
+
+    setResetMessage('');
+    setResetError('');
+
+    if (!validateEmail(normalizedEmail)) {
+      setResetError('Please enter a valid email address.');
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      // Firebase sends a secure password-reset email containing a one-time
+      // action link/code. The password is changed only after that email action
+      // is completed. This avoids insecure client-generated OTP verification.
+      await sendPasswordResetEmail(auth, normalizedEmail);
+      setResetMessage(
+        'If an account exists for this email, Firebase has sent a password-reset email. Open the email and follow its secure link to choose a new password. Check your spam folder too.'
+      );
+    } catch (error: unknown) {
+      console.error('Password reset request failed:', error);
+
+      if (error instanceof FirebaseError) {
+        if (error.code === 'auth/invalid-email') {
+          setResetError('Please enter a valid email address.');
+        } else if (error.code === 'auth/too-many-requests') {
+          setResetError('Too many reset requests. Please wait before trying again.');
+        } else if (error.code === 'auth/network-request-failed') {
+          setResetError('Connection failed. Please check your internet.');
+        } else {
+          // Avoid revealing whether an email address is registered.
+          setResetMessage(
+            'If an account exists for this email, a password-reset email will be sent. Check your inbox and spam folder.'
+          );
+        }
+      } else {
+        setResetError('Unable to send the reset email right now. Please try again.');
+      }
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -174,9 +284,9 @@ const Login: React.FC = () => {
                 {isAdmin ? 'for administrators.' : isOwner ? 'island business.' : 'to your escape.'}
               </h2>
               <p className="login-side-description">
-                {isAdmin 
-                  ? 'Manage users, resorts, and system settings for Mindoro Scape.' 
-                  : isOwner 
+                {isAdmin
+                  ? 'Manage users, resorts, and system settings for Mindoro Scape.'
+                  : isOwner
                     ? 'Log in to update your resort details, manage bookings, and connect with travelers.'
                     : 'Log in to explore resorts, save your favorites, and plan your next getaway in Oriental Mindoro.'}
               </p>
@@ -194,8 +304,9 @@ const Login: React.FC = () => {
                 className="login-back-button"
                 type="button"
                 onClick={() => navigate('/home')}
-                disabled={loading}
+                disabled={loading || resetLoading}
               >
+                <ArrowLeft size={16} />
                 Back to Home
               </button>
 
@@ -204,97 +315,209 @@ const Login: React.FC = () => {
                 <span>MINDORO SCAPE</span>
               </div>
 
-              <div className="login-heading">
-                <p className="login-brand">{isAdmin ? 'ADMIN PORTAL' : isOwner ? 'OWNER PORTAL' : 'WELCOME BACK'}</p>
-                <h1>{titleText}</h1>
-                <p className="login-description">{descText}</p>
-              </div>
+              {platformSuspended && !isAdmin && (
+                <section className="login-suspension-notice" role="alert">
+                  <span className="login-suspension-icon">
+                    <ShieldAlert size={21} />
+                  </span>
+                  <span>
+                    <strong>Platform temporarily suspended</strong>
+                    <small>{suspensionMessage}</small>
+                    <small>User and Owner login are unavailable. Admin access remains available.</small>
+                  </span>
+                </section>
+              )}
 
-              <form onSubmit={handleLogin} noValidate>
-                <div className="login-field">
-                  <label htmlFor="login-email">Email Address</label>
-                  <input
-                    id="login-email"
-                    name="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(event) => {
-                      setEmail(event.target.value);
-                      setErrorMessage('');
+              {!showForgotPassword ? (
+                <>
+                  <div className="login-heading">
+                    <p className="login-brand">
+                      {isAdmin ? 'ADMIN PORTAL' : isOwner ? 'OWNER PORTAL' : 'WELCOME BACK'}
+                    </p>
+                    <h1>{headingText}</h1>
+                    <p className="login-description">{descText}</p>
+                  </div>
+
+                  <form onSubmit={handleLogin} noValidate autoComplete="off">
+                    <div className="login-field">
+                      <label htmlFor="login-email">Email Address</label>
+                      <input
+                        id="login-email"
+                        name="login-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        spellCheck={false}
+                        value={email}
+                        onChange={(event) => {
+                          setEmail(event.target.value);
+                          setErrorMessage('');
+                        }}
+                        required
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div className="login-field">
+                      <label htmlFor="login-password">Password</label>
+                      <div className="login-password-wrapper">
+                        <input
+                          id="login-password"
+                          name="login-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Enter your password"
+                          autoComplete="new-password"
+                          value={password}
+                          onChange={(event) => {
+                            setPassword(event.target.value);
+                            setErrorMessage('');
+                          }}
+                          required
+                          disabled={loading}
+                        />
+                        <button
+                          className="login-password-toggle"
+                          type="button"
+                          onClick={() => setShowPassword((previous) => !previous)}
+                          disabled={loading}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          {showPassword ? (
+                            <EyeOff size={20} strokeWidth={2} />
+                          ) : (
+                            <Eye size={20} strokeWidth={2} />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="login-forgot-row">
+                      <button
+                        type="button"
+                        onClick={openForgotPassword}
+                        disabled={loading}
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+
+                    {errorMessage && (
+                      <div className="login-error" role="alert">
+                        <span className="login-error-icon" aria-hidden="true">!</span>
+                        <span>{errorMessage}</span>
+                      </div>
+                    )}
+
+                    <button
+                      className="login-submit"
+                      type="submit"
+                      disabled={loading || (platformSuspended && !isAdmin)}
+                    >
+                      {loading ? 'Logging in...' : btnText}
+                    </button>
+                  </form>
+
+                  <div className="login-signup">
+                    {isAdmin ? (
+                      <span>Admin accounts are created manually by the system.</span>
+                    ) : (
+                      <>
+                        <span>Don't have an account?</span>
+                        <button
+                          type="button"
+                          onClick={() => navigate(isOwner ? '/signup?role=owner' : '/signup')}
+                          disabled={loading || platformSuspended}
+                        >
+                          Create Account
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="login-portal-switch">
+                    {roleParam === 'user' && (
+                      <span>
+                        Are you a resort owner?{' '}
+                        <button type="button" onClick={() => navigate('/login?role=owner')}>
+                          Login here
+                        </button>
+                      </span>
+                    )}
+                    {roleParam === 'owner' && (
+                      <span>
+                        Are you a traveler?{' '}
+                        <button type="button" onClick={() => navigate('/login')}>
+                          Login here
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <section className="login-reset-panel">
+                  <button
+                    type="button"
+                    className="login-reset-back"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setResetMessage('');
+                      setResetError('');
                     }}
-                    required
-                    disabled={loading}
-                  />
-                </div>
+                  >
+                    <ArrowLeft size={15} />
+                    Back to login
+                  </button>
 
-                <div className="login-field">
-                  <label htmlFor="login-password">Password</label>
-                  <div className="login-password-wrapper">
-                    <input
-                      id="login-password"
-                      name="password"
-                      type={showPassword ? 'text' : 'password'}
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                      value={password}
-                      onChange={(event) => {
-                        setPassword(event.target.value);
-                        setErrorMessage('');
-                      }}
-                      required
-                      disabled={loading}
-                    />
-                    <button
-                      className="login-password-toggle"
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      disabled={loading}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    >
-                      {showPassword ? <EyeOff size={19} strokeWidth={2} /> : <Eye size={19} strokeWidth={2} />}
+                  <span className="login-reset-icon">
+                    <Mail size={25} />
+                  </span>
+                  <p className="login-brand">ACCOUNT RECOVERY</p>
+                  <h1>Reset your password</h1>
+                  <p className="login-description">
+                    Enter the email address connected to your account. We will send a secure password-reset email.
+                  </p>
+
+                  <form onSubmit={handlePasswordReset} noValidate>
+                    <div className="login-field">
+                      <label htmlFor="reset-email">Email Address</label>
+                      <input
+                        id="reset-email"
+                        name="reset-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        autoComplete="off"
+                        value={resetEmail}
+                        onChange={(event) => {
+                          setResetEmail(event.target.value);
+                          setResetError('');
+                          setResetMessage('');
+                        }}
+                        required
+                        disabled={resetLoading}
+                      />
+                    </div>
+
+                    {resetError && (
+                      <div className="login-error" role="alert">
+                        <span className="login-error-icon">!</span>
+                        <span>{resetError}</span>
+                      </div>
+                    )}
+
+                    {resetMessage && (
+                      <div className="login-reset-success" role="status">
+                        <CheckCircle2 size={19} />
+                        <span>{resetMessage}</span>
+                      </div>
+                    )}
+
+                    <button className="login-submit" type="submit" disabled={resetLoading}>
+                      {resetLoading ? 'Sending email...' : 'Send Reset Email'}
                     </button>
-                  </div>
-                </div>
-
-                {errorMessage && (
-                  <div className="login-error" role="alert">
-                    <span className="login-error-icon" aria-hidden="true">!</span>
-                    <span>{errorMessage}</span>
-                  </div>
-                )}
-
-                <button className="login-submit" type="submit" disabled={loading}>
-                  {loading ? 'Logging in...' : btnText}
-                </button>
-              </form>
-
-              <div className="login-signup">
-                {isAdmin ? (
-                  <span>Admin accounts are created manually by the system.</span>
-                ) : (
-                  <>
-                    <span>Don't have an account?</span>
-                    <button
-                      type="button"
-                      onClick={() => navigate(isOwner ? '/signup?role=owner' : '/signup')}
-                      disabled={loading}
-                    >
-                      Create Account
-                    </button>
-                  </>
-                )}
-              </div>
-
-              <div className="login-portal-switch" style={{ marginTop: '20px', fontSize: '12px', textAlign: 'center' }}>
-                {roleParam === 'user' && (
-                  <span>Are you a resort owner? <button type="button" onClick={() => navigate('/login?role=owner')} style={{ background: 'none', border: 'none', color: '#08758a', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}>Login here</button></span>
-                )}
-                {roleParam === 'owner' && (
-                  <span>Are you a traveler? <button type="button" onClick={() => navigate('/login')} style={{ background: 'none', border: 'none', color: '#08758a', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'underline' }}>Login here</button></span>
-                )}
-              </div>
+                  </form>
+                </section>
+              )}
 
               <footer className="signup-footer">
                 <span className="signup-footer-brand">MINDORO SCAPE</span>

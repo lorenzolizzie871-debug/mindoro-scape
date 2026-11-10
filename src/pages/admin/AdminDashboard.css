@@ -405,3 +405,480 @@
   .admin-detail-row{grid-template-columns:1fr;gap:4px}
   .admin-detail-row strong{text-align:left!important}
 }
+
+/* Web admin navigation: full-width bar pinned to the viewport edges */
+.admin-bottom-nav{
+  position:fixed;
+  left:0 !important;
+  right:0 !important;
+  bottom:0;
+  width:100% !important;
+  max-width:none !important;
+  transform:none !important;
+  border-radius:0 !important;
+  padding-left:max(18px, env(safe-area-inset-left));
+  padding-right:max(18px, env(safe-area-inset-right));
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));
+}
+.admin-main{padding-bottom:calc(118px + env(safe-area-inset-bottom))}
+.admin-weather-emergency-action{width:100%;margin-top:12px}
+@media(min-width:700px){
+  .admin-bottom-nav{left:0 !important;right:0 !important;width:100% !important;max-width:none !important;transform:none !important;border-radius:0 !important}
+}
+
+
+/* ==========================================================
+   PREMIUM ADMIN DETAILS MODAL + CONSISTENT PAGE WIDTH
+========================================================== */
+
+/* All admin tabs share one centered content canvas. */
+.admin-main {
+  width: min(100% - 40px, 1180px);
+  max-width: 1180px;
+  margin-inline: auto;
+  padding: 26px 0 calc(126px + env(safe-area-inset-bottom));
+}
+
+.admin-tab-content {
+  width: 100%;
+  min-width: 0;
+}
+
+.admin-page-heading,
+.admin-welcome,
+.admin-section-heading,
+.admin-search,
+.admin-list-heading,
+.admin-directory-list,
+.admin-user-summary,
+.admin-verification-panel,
+.admin-resort-map-card,
+.admin-storm-card,
+.admin-emergency-card,
+.admin-system-info,
+.admin-review-list {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.admin-detail-backdrop {
+  padding: clamp(12px, 3vw, 30px);
+  overflow-y: auto;
+  align-items: center;
+}
+
+.admin-detail-modal-premium {
+  display: flex;
+  flex-direction: column;
+  width: min(860px, calc(100vw - 28px));
+  max-width: 860px;
+  max-height: min(90dvh, 940px);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(218, 232, 240, .95);
+  border-radius: 24px;
+  background: #f7fafc;
+  box-shadow: 0 28px 90px rgba(0, 28, 55, .30);
+}
+
+.admin-detail-modal-header {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 26px 30px 23px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 88% 8%, rgba(115, 220, 218, .22), transparent 34%),
+    linear-gradient(120deg, #063c55 0%, #075b72 62%, #087e91 100%);
+}
+
+.admin-detail-header-copy {
+  min-width: 0;
+  padding-right: 36px;
+}
+
+.admin-detail-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 5px 9px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 999px;
+  background: rgba(255,255,255,.1);
+  color: #b9f0eb;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.3px;
+}
+
+.admin-detail-modal-header h3 {
+  margin: 13px 0 6px;
+  color: #fff;
+  font-size: clamp(21px, 3vw, 29px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -.6px;
+}
+
+.admin-detail-modal-header p {
+  max-width: 620px;
+  margin: 0;
+  color: rgba(255,255,255,.76);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.admin-detail-close {
+  position: absolute;
+  top: 19px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 11px;
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  font-size: 19px;
+  transition: background .18s ease, transform .18s ease;
+}
+
+.admin-detail-close:hover {
+  background: rgba(255,255,255,.22);
+  transform: rotate(4deg);
+}
+
+.admin-detail-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px 30px 28px;
+  overscroll-behavior: contain;
+}
+
+.admin-detail-profile-strip {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #e1ebf1;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(7, 59, 83, .035);
+}
+
+.admin-detail-profile-avatar {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid #e4f1f4;
+  border-radius: 15px;
+  background: #e9f5f7;
+  color: #08758a;
+  font-size: 24px;
+}
+
+.admin-detail-profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-detail-profile-strip > div:nth-child(2) {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-detail-profile-strip > div:nth-child(2) strong {
+  color: #073b53;
+  font-size: 14px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.admin-detail-profile-strip > div:nth-child(2) span {
+  color: #748894;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.admin-detail-info-section,
+.admin-detail-media-section {
+  margin-top: 16px;
+  padding: 18px 20px;
+  border: 1px solid #e2ebf0;
+  border-radius: 17px;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(7, 59, 83, .035);
+}
+
+.admin-detail-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 12px;
+}
+
+.admin-detail-section-mark {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  background: #e8f5f7;
+  color: #08758a;
+  font-size: 18px;
+}
+
+.admin-detail-section-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.admin-detail-section-heading h4 {
+  margin: 0;
+  color: #073b53;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-detail-section-heading p {
+  margin: 0;
+  color: #82929b;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.admin-detail-modal-premium .admin-detail-list {
+  margin-top: 5px;
+}
+
+.admin-detail-modal-premium .admin-detail-row {
+  grid-template-columns: minmax(130px, .7fr) minmax(0, 1.3fr);
+  gap: 18px;
+  padding: 11px 2px;
+  border-top: 1px solid #edf2f5;
+  font-size: 11px;
+}
+
+.admin-detail-modal-premium .admin-detail-row span {
+  color: #788b96;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.admin-detail-modal-premium .admin-detail-row strong {
+  color: #183f51;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: right !important;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.admin-detail-image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.admin-detail-image-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #dfe9ef;
+  border-radius: 13px;
+  background: #f5f9fb;
+  color: #07536c;
+  text-decoration: none;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+
+.admin-detail-image-card:hover {
+  border-color: #8dbdc9;
+  box-shadow: 0 7px 20px rgba(7, 59, 83, .1);
+  transform: translateY(-2px);
+}
+
+.admin-detail-image-card img {
+  display: block;
+  width: 100%;
+  height: 230px;
+  object-fit: contain;
+  background:
+    linear-gradient(45deg, #f0f4f6 25%, transparent 25%),
+    linear-gradient(-45deg, #f0f4f6 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #f0f4f6 75%),
+    linear-gradient(-45deg, transparent 75%, #f0f4f6 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+}
+
+.admin-detail-image-card > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-top: 1px solid #e5edf1;
+  background: #fff;
+  color: #07536c;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.admin-detail-image-card > span ion-icon {
+  font-size: 14px;
+}
+
+.admin-detail-media-section .admin-no-document {
+  padding: 19px;
+  border: 1px dashed #cad9e1;
+  border-radius: 12px;
+  background: #f8fbfc;
+  color: #81919a;
+  font-size: 11px;
+}
+
+.admin-detail-modal-premium .admin-booking-summary {
+  margin: 0;
+  padding: 13px;
+  border: 0;
+  background: #f4f8fa;
+}
+
+.admin-detail-modal-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 30px;
+  border-top: 1px solid #e5edf1;
+  background: #fff;
+}
+
+.admin-detail-modal-footer > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #82929b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.admin-detail-modal-footer > span ion-icon {
+  color: #087b91;
+  font-size: 15px;
+}
+
+.admin-detail-modal-footer .admin-primary-button {
+  min-width: 112px;
+  min-height: 39px;
+  margin: 0;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+@media (min-width: 700px) {
+  .admin-main {
+    width: min(100% - 64px, 1180px);
+    max-width: 1180px;
+    padding-top: 30px;
+  }
+}
+
+@media (max-width: 600px) {
+  .admin-main {
+    width: calc(100% - 28px);
+    padding-top: 18px;
+  }
+
+  .admin-detail-modal-premium {
+    width: calc(100vw - 20px);
+    max-height: 92dvh;
+    border-radius: 19px;
+  }
+
+  .admin-detail-modal-header {
+    padding: 21px 19px 19px;
+  }
+
+  .admin-detail-modal-header h3 {
+    font-size: 21px;
+  }
+
+  .admin-detail-modal-body {
+    padding: 15px;
+  }
+
+  .admin-detail-info-section,
+  .admin-detail-media-section {
+    padding: 14px;
+    border-radius: 14px;
+  }
+
+  .admin-detail-image-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-detail-image-card img {
+    height: 220px;
+  }
+
+  .admin-detail-modal-premium .admin-detail-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .admin-detail-modal-premium .admin-detail-row strong {
+    text-align: left !important;
+  }
+
+  .admin-detail-modal-footer {
+    padding: 12px 15px;
+  }
+
+  .admin-detail-modal-footer > span {
+    max-width: 55%;
+    line-height: 1.4;
+  }
+}
+
+@media (max-width: 360px) {
+  .admin-detail-profile-strip {
+    flex-wrap: wrap;
+  }
+
+  .admin-detail-profile-strip .admin-status-pill {
+    margin-left: 65px;
+  }
+
+  .admin-detail-modal-footer > span {
+    display: none;
+  }
+
+  .admin-detail-modal-footer .admin-primary-button {
+    width: 100%;
+  }
+}

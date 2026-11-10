@@ -1,16 +1,75 @@
-import { IonContent, IonPage } from '@ionic/react';
+import React, { useEffect, useState } from 'react';
+import { IonContent, IonPage, useIonAlert } from '@ionic/react';
 import { useNavigate } from 'react-router-dom';
+import { doc, onSnapshot } from 'firebase/firestore';
 import {
   Palmtree,
   MapPinned,
   CalendarCheck,
   Compass,
   MapPin,
+  Ban,
 } from 'lucide-react';
+import { db } from '../firebase';
 import './Home.css';
+
+const PLATFORM_SUSPENDED_MESSAGE =
+  'Mindoro Scape is temporarily suspended. Get Started and Log in are unavailable for now. Please try again later.';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const [presentAlert] = useIonAlert();
+  const [platformSuspended, setPlatformSuspended] = useState(false);
+  const [suspensionMessage, setSuspensionMessage] = useState(
+    PLATFORM_SUSPENDED_MESSAGE
+  );
+
+  useEffect(() => {
+    const platformControlRef = doc(db, 'systemSettings', 'platformControl');
+
+    const unsubscribe = onSnapshot(
+      platformControlRef,
+      (snapshot) => {
+        const data = snapshot.exists() ? snapshot.data() : {};
+        const suspended = data.suspended === true;
+
+        setPlatformSuspended(suspended);
+
+        const adminMessage = String(
+          data.message || data.suspensionMessage || ''
+        ).trim();
+
+        setSuspensionMessage(adminMessage || PLATFORM_SUSPENDED_MESSAGE);
+      },
+      (error) => {
+        console.error('Unable to read platform suspension status:', error);
+        // Fail open for browsing if the status cannot be read.
+        // Booking and account restrictions must also be enforced by their own
+        // protected flows and Firestore/backend rules.
+        setPlatformSuspended(false);
+      }
+    );
+
+    return unsubscribe;
+  }, []);
+
+  const showSuspensionAlert = () => {
+    presentAlert({
+      header: 'Platform Temporarily Suspended',
+      message: suspensionMessage,
+      buttons: [{ text: 'Okay', role: 'cancel' }],
+      cssClass: 'platform-suspension-alert',
+    });
+  };
+
+  const handleProtectedNavigation = (path: string) => {
+    if (platformSuspended) {
+      showSuspensionAlert();
+      return;
+    }
+
+    navigate(path);
+  };
 
   const features = [
     {
@@ -43,6 +102,26 @@ const Home: React.FC = () => {
           <header className="onboarding-header">
             <div className="header-spacer" aria-hidden="true" />
           </header>
+
+          {platformSuspended && (
+            <section
+              className="platform-suspension-banner"
+              role="alert"
+              aria-live="polite"
+            >
+              <span className="platform-suspension-icon" aria-hidden="true">
+                <Ban size={22} strokeWidth={1.9} />
+              </span>
+
+              <div className="platform-suspension-copy">
+                <strong>Mindoro Scape is temporarily suspended</strong>
+                <p>{suspensionMessage}</p>
+                <small>
+                  Get Started and Log in are temporarily unavailable.
+                </small>
+              </div>
+            </section>
+          )}
 
           <div className="onboarding-layout">
             {/* LEFT SIDE: HERO IMAGE */}
@@ -89,8 +168,7 @@ const Home: React.FC = () => {
                   Oriental Mindoro, Philippines
                 </p>
 
-                <div className="hero-feature-shortcuts">
-                </div>
+                <div className="hero-feature-shortcuts" />
               </div>
             </section>
 
@@ -155,7 +233,8 @@ const Home: React.FC = () => {
                 <button
                   type="button"
                   className="primary-button"
-                  onClick={() => navigate('/signup')}
+                  onClick={() => handleProtectedNavigation('/signup')}
+                  aria-disabled={platformSuspended}
                 >
                   <Compass size={19} strokeWidth={2} />
                   Get Started
@@ -165,7 +244,8 @@ const Home: React.FC = () => {
                   Already have an account?{' '}
                   <button
                     type="button"
-                    onClick={() => navigate('/login')}
+                    onClick={() => handleProtectedNavigation('/login')}
+                    aria-disabled={platformSuspended}
                   >
                     Log in
                   </button>
