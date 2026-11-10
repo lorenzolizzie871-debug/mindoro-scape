@@ -159,19 +159,20 @@ const AppRoutes: React.FC = () => {
         element={<Signup />}
       />
 
-      {/* =====================================
-          PAYPAL RETURN ROUTES
-      ===================================== */}
+     
+{/* =====================================
+    PAYPAL RETURN ROUTES
+===================================== */}
 
-      <Route
-        path="/payment/success"
-        element={protectedElement(<PaymentSuccess />)}
-      />
+<Route
+  path="/payment/success"
+  element={<PaymentSuccess />}
+/>
 
-      <Route
-        path="/payment/cancel"
-        element={protectedElement(<PaymentCancel />)}
-      />
+<Route
+  path="/payment/cancel"
+  element={<PaymentCancel />}
+/>
 
       {/* =====================================
           USER DASHBOARD
