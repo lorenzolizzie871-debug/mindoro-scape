@@ -1764,7 +1764,7 @@ const OwnerDashboard: React.FC = () => {
                 <div className="owner-page-heading">
                   <div>
                     <span className="owner-section-kicker">
-                      HOST CONCIERGE DESK
+                      Owner
                     </span>
 
                     <h2 className="owner-welcome-title">
