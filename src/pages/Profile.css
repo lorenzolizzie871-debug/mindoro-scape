@@ -917,3 +917,15 @@
   .profile-review-card { padding: 21px 17px; border-radius: 15px; }
   .profile-review-heading h2 { font-size: 18px; }
 }
+
+
+/* =========================================
+   FIXED HEADER — stays on screen while the page scrolls
+   (keep this block at the very end of the file)
+========================================= */
+.profile-header {
+  position: sticky;
+  top: 0;
+  z-index: 1500; /* above the cards; the loading overlay (9999) stays on top */
+  background: #ffffff; /* solid, so content doesn't show through while scrolling */
+}

@@ -1332,3 +1332,15 @@
     padding-left: 11px;
   }
 }
+
+
+/* =========================================
+   FIXED HEADER — stays on screen while the page scrolls
+   (keep this block at the very end of the file)
+========================================= */
+.my-bookings-header {
+  position: sticky !important;
+  top: 0;
+  z-index: 1500; /* above the cards; modals (2000+) still appear on top */
+  background: #ffffff !important;
+}

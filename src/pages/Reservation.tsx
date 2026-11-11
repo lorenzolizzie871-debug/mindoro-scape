@@ -948,7 +948,12 @@ useEffect(() => {
 
           if (typeof data.fullName === 'string') setFullName(data.fullName);
 
-          if (typeof data.phone === 'string') setPhone(data.phone);
+          if (typeof data.phone === 'string') {
+            let digits = data.phone.replace(/\D/g, '');
+            if (digits.startsWith('63')) digits = digits.slice(2);
+            if (digits.startsWith('0')) digits = digits.slice(1);
+            setPhone(digits.slice(0, 10));
+          }
 
         }
 
@@ -1106,16 +1111,24 @@ useEffect(() => {
 
     if (!rate) return [];
 
-    const rateServices = Array.isArray(rate.additionalServices)
-
-      ? rate.additionalServices
-
+    // OwnerDashboard saves services inside pricingOptions[].additionalServices.
+    // Resolve the selected rate by ID first, then by the selected rate index.
+    const savedRates = Array.isArray(resort?.pricingOptions)
+      ? resort.pricingOptions
       : [];
+    const savedSelectedRate =
+      savedRates.find((item) => String(item?.id || '') === String(rate.id || '')) ||
+      savedRates[rateIndex];
 
+    const rateServices = Array.isArray(rate.additionalServices) && rate.additionalServices.length
+      ? rate.additionalServices
+      : Array.isArray(savedSelectedRate?.additionalServices)
+        ? savedSelectedRate.additionalServices
+        : [];
+
+    // Keep compatibility with older listings that stored add-ons at package level.
     const source = rateServices.length > 0
-
       ? rateServices
-
       : (Array.isArray(resort?.addOns) ? resort.addOns : []);
 
     return source
@@ -1142,7 +1155,7 @@ useEffect(() => {
 
       }));
 
-  }, [rate, resort]);
+  }, [rate, resort, rateIndex]);
 
   // Start with included services selected, plus services the guest selected
 
@@ -2539,31 +2552,29 @@ getDoc(doc(db, 'packages', decodeURIComponent(id))),
 
                   <label htmlFor="guestphone">Mobile number *</label>
 
-                  <input
+                  <div className="rv-phone-input">
+                    <span className="rv-phone-prefix" aria-hidden="true">+63</span>
+                    <input
+                      className="rv-text-input rv-phone-number"
+                      id="guestphone"
+                      type="tel"
+                      inputMode="numeric"
+                      autoComplete="tel-national"
+                      value={phone}
+                      onChange={(e) => {
+                        let digits = e.target.value.replace(/\D/g, '');
+                        if (digits.startsWith('63')) digits = digits.slice(2);
+                        if (digits.startsWith('0')) digits = digits.slice(1);
+                        setPhone(digits.slice(0, 10));
+                      }}
+                      placeholder="917 123 4567"
+                      maxLength={10}
+                      aria-describedby="guestphone-hint"
+                      required
+                    />
+                  </div>
 
-                    className="rv-text-input"
-
-                    id="guestphone"
-
-                    type="tel"
-
-                    inputMode="tel"
-
-                    autoComplete="tel"
-
-                    value={phone}
-
-                    onChange={e => setPhone(e.target.value.replace(/[^0-9+()\s-]/g, '').slice(0, 20))}
-
-                    placeholder="+63 917 123 4567"
-
-                    aria-describedby="guestphone-hint"
-
-                    required
-
-                  />
-
-                  <small className="rv-hint" id="guestphone-hint">Use a Philippine mobile number. Example: +63 917 123 4567. Numbers starting with 09 are also accepted.</small>
+                  <small className="rv-hint" id="guestphone-hint">Enter your 10-digit mobile number after +63. Example: 917 123 4567.</small>
 
                 </div>
 

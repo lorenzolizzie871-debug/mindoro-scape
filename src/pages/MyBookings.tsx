@@ -302,7 +302,7 @@ const MyBookings: React.FC = () => {
     );
     return () => unsubscribe();
   }, [user?.uid]);
-  // Expire unconfirmed reservations once their check-in date has started.
+  // Expire unconfirmed reservations only after their check-in date has passed.
   // This client-side safeguard runs when the bookings page is opened/active.
   // For guaranteed background execution, deploy the scheduled Cloud Function
   // described after the code delivery.
@@ -317,7 +317,7 @@ const MyBookings: React.FC = () => {
         status === 'unconfirmed' ||
         status === 'awaiting_confirmation' ||
         status === 'pending_confirmation';
-      return isAwaitingOwner && Boolean(checkInKey) && checkInKey <= todayKey;
+      return isAwaitingOwner && Boolean(checkInKey) && checkInKey < todayKey;
     });
     expiredPendingBookings.forEach((booking) => {
       const bookingRef = doc(db, 'reservations', booking.id);
@@ -334,7 +334,7 @@ const MyBookings: React.FC = () => {
           freshStatus === 'unconfirmed' ||
           freshStatus === 'awaiting_confirmation' ||
           freshStatus === 'pending_confirmation';
-        if (stillAwaitingOwner && freshCheckIn && freshCheckIn <= todayKey) {
+        if (stillAwaitingOwner && freshCheckIn && freshCheckIn < todayKey) {
           transaction.update(bookingRef, {
             status: 'cancelled',
             cancellationReason: 'Automatically cancelled because the owner did not confirm before the check-in date.',

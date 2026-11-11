@@ -326,10 +326,10 @@ async function autoCancelUnconfirmedReservations() {
           const stillPending =
             pendingStatuses.includes(status);
 
-          const checkInStarted =
-            Boolean(checkInDate) && checkInDate <= today;
+          const checkInDateHasPassed =
+            Boolean(checkInDate) && checkInDate < today;
 
-          if (!stillPending || !checkInStarted) {
+          if (!stillPending || !checkInDateHasPassed) {
             return false;
           }
 
