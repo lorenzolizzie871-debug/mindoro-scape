@@ -1,978 +1,255 @@
 /* ===================== Owner Bookings (page) ===================== */
-
-
-
 .owner-bookings{width:100%;max-width:1100px;margin:0 auto;padding-bottom:32px;color:#17324a}
-
-
-
 .owner-bookings *{box-sizing:border-box}
-
-
-
 .owner-bookings .owner-page-heading{align-items:flex-start;margin-bottom:18px}
-
-
-
 .owner-bookings .owner-page-heading h2{font-size:clamp(25px,4vw,32px);letter-spacing:-.035em}
-
-
-
 .owner-bookings .owner-page-description{max-width:650px;line-height:1.6}
 
-
-
-
-
-
-
 .ob-revenue-card{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px;border-radius:18px;background:linear-gradient(125deg,#00374e,#0b6078);color:#fff;box-shadow:0 8px 24px rgba(0,55,78,.16);margin:18px 0 12px}
-
-
-
 .ob-revenue-card span{display:flex;align-items:center;gap:7px;color:#bfe9ff;font-size:10px;font-weight:800;letter-spacing:.09em}
-
-
-
 .ob-revenue-card strong{display:block;font-size:clamp(25px,6vw,34px);font-weight:850;letter-spacing:-.04em;margin:7px 0 3px}
-
-
-
 .ob-revenue-card small{font-size:11px;color:#d4edf5}
-
-
-
 .ob-revenue-icon{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.13);font-size:25px;flex:none}
 
-
-
-
-
-
-
 .ob-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0 18px}
-
-
-
 .ob-stat-grid article{background:#fff;border:1px solid #e5edf1;border-radius:14px;padding:14px;box-shadow:0 4px 14px rgba(23,50,74,.035)}
-
-
-
 .ob-stat-grid small{display:block;color:#667987;font-size:11px;line-height:1.35}
-
-
-
 .ob-stat-grid strong{display:block;color:#153c50;font-size:25px;font-weight:800;margin-top:5px}
 
-
-
-
-
-
-
 .ob-toolbar{display:flex;gap:10px;margin:18px 0 13px}
-
-
-
 .ob-search{display:flex;align-items:center;gap:9px;flex:1;min-width:0;background:#fff;border:1px solid #e3ebef;border-radius:12px;padding:0 13px;min-height:46px;color:#71828d}
-
-
-
 .ob-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#17324a;font-size:12px}
 
-
-
-
-
-
-
 .ob-tabs{display:flex;gap:7px;overflow-x:auto;padding:2px 0 12px;scrollbar-width:none}
-
-
-
 .ob-tabs::-webkit-scrollbar{display:none}
-
-
-
 .ob-tabs button{border:0;border-radius:999px;background:#e5eeff;color:#415c6d;padding:9px 13px;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer;transition:background .18s ease,transform .18s ease}
-
-
-
 .ob-tabs button:hover{transform:translateY(-1px)}
-
-
-
 .ob-tabs button span{margin-left:5px;opacity:.75}
-
-
-
 .ob-tabs button.active{background:#0b4f6c;color:#fff;box-shadow:0 3px 9px rgba(11,79,108,.15)}
 
-
-
-
-
-
-
 .ob-list{display:grid;gap:12px}
-
-
-
 .ob-booking-card{background:#fff;border:1px solid #e5edf1;border-radius:18px;padding:17px;box-shadow:0 5px 20px rgba(23,50,74,.045);min-width:0;transition:box-shadow .18s ease,border-color .18s ease}
-
-
-
 .ob-booking-card:hover{border-color:#c8dce3;box-shadow:0 10px 28px rgba(23,50,74,.08)}
-
-
-
 .ob-card-top,.ob-guest,.ob-booking-info>div,.ob-booking-info p,.ob-booking-info small,.ob-card-actions,.ob-card-actions>div{display:flex;align-items:center}
-
-
-
 .ob-card-top{justify-content:space-between;gap:10px}
-
-
-
 .ob-guest{gap:10px;min-width:0}
-
-
-
 .ob-avatar{width:42px;height:42px;flex:none;border-radius:13px;background:#e7f5f5;color:#0b7180;display:grid;place-items:center;font-size:19px}
-
-
-
 .ob-guest>div{display:grid;min-width:0}
-
-
-
 .ob-guest strong{font-size:13px;color:#153c50;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-
-
 .ob-guest small{font-size:10px;color:#0b8994;margin-top:3px;overflow-wrap:anywhere}
 
-
-
-
-
-
-
 .ob-badge{border-radius:999px;padding:6px 9px;font-size:9px;font-weight:800;white-space:nowrap;text-transform:capitalize}
-
-
-
 .ob-badge.pending{background:#fff1d6;color:#8a5200}
-
-
-
 .ob-badge.cod{background:#e6f1ff;color:#15558b}
-
-
-
 .ob-badge.paid,.ob-badge.confirmed{background:#dcfce9;color:#17623a}
-
-
-
 .ob-badge.completed{background:#e4e9ff;color:#384b91}
-
-
-
 .ob-badge.cancelled{background:#fff0ef;color:#a3342c}
-
-
-
 .ob-badge.other{background:#eef1f4;color:#53616c}
 
-
-
-
-
-
-
 .ob-booking-info{margin-top:13px;padding:12px;border-radius:12px;background:#eff4ff}
-
-
-
 .ob-booking-info>div{justify-content:space-between;gap:10px}
-
-
-
 .ob-booking-info>div strong{font-size:12px;color:#17324a;min-width:0}
-
-
-
 .ob-booking-info>div b{font-size:16px;color:#00374e;white-space:nowrap}
-
-
-
 .ob-booking-info p{flex-wrap:wrap;gap:8px 15px;margin:8px 0;color:#5e7180;font-size:10px}
-
-
-
 .ob-booking-info p span,.ob-booking-info small{display:flex;align-items:center;gap:5px}
-
-
-
 .ob-booking-info p ion-icon,.ob-booking-info small ion-icon{color:#0b7180;font-size:14px;flex:none}
-
-
-
 .ob-booking-info small{font-size:10px;color:#5e7180;margin-top:5px}
-
-
-
 .ob-notes{font-size:11px;color:#5e7180;margin:10px 0 0;overflow-wrap:anywhere}
-
-
-
 .ob-auto-note{display:flex;align-items:center;gap:6px;margin:10px 0 0;padding:8px 10px;border-radius:9px;background:#eef1ff;color:#384b91;font-size:10px;font-weight:700}
-
-
-
 .ob-auto-note ion-icon{font-size:14px;flex:none}
 
-
-
-
-
-
-
 .ob-card-actions{justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:13px;padding-top:11px;border-top:1px solid #edf1f4}
-
-
-
 .ob-status-text{font-size:10px;font-weight:800;color:#647987;text-transform:capitalize}
-
-
-
 .ob-status-text.confirmed,.ob-status-text.completed{color:#16804b}
-
-
-
 .ob-card-actions>div{gap:7px;flex-wrap:wrap}
-
-
-
 .ob-card-actions button,.ob-modal-actions button{border:0;border-radius:10px;padding:10px 12px;font-size:11px;font-weight:750;cursor:pointer}
-
-
-
-.ob-card-actions button:disabled,.ob-modal-actions button:disabled{opacity:.55;cursor:not-allowed}
-
-
-
+.ob-card-actions button:disabled,.ob-modal-actions button:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.25)}
 .ob-confirm-btn{background:#0b4f6c;color:#fff}
-
-
-
 .ob-complete-btn{background:#dcfce9;color:#17623a}
-
-
-
 .ob-paid-btn{background:#15945c;color:#fff}
-
-
-
 .ob-decline-btn{background:#fff0ef;color:#a3342c;display:inline-flex;align-items:center;justify-content:center;gap:5px}
-
-
-
 .ob-view-btn{background:#eaf1f5;color:#24495d;display:inline-flex;align-items:center;justify-content:center;gap:5px}
 
-
-
-
-
-
-
 .ob-cancellation-note{margin-top:12px;padding:12px;border-radius:12px;background:#fff4f2;border:1px solid #f5d6d1;color:#81372f}
-
-
-
 .ob-cancellation-note strong{display:flex;align-items:center;gap:6px;font-size:11px}
-
-
-
 .ob-cancellation-note p{font-size:11px;line-height:1.5;margin:7px 0;white-space:pre-wrap;overflow-wrap:anywhere}
-
-
-
 .ob-cancellation-note small{display:block;font-size:10px;color:#96615b;margin-top:4px}
-
-
-
 .ob-cancellation-note.in-modal{margin-top:13px}
 
-
-
-
-
-
-
 .ob-state,.ob-empty{min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;color:#647987;background:#fff;border:1px dashed #d6e1e7;border-radius:16px;padding:22px}
-
-
-
 .ob-state p,.ob-empty p{font-size:12px;margin:0}
-
-
-
 .ob-error{color:#a3342c}
-
-
-
 .ob-error small{color:#647987}
-
-
-
 .ob-empty>span{width:48px;height:48px;border-radius:50%;background:#e7f5f5;color:#0b7180;display:grid;place-items:center;font-size:22px}
-
-
-
 .ob-empty h3{margin:0;color:#153c50;font-size:16px}
-
-
-
 .ob-footnote{display:flex;align-items:flex-start;gap:7px;color:#71828d;font-size:10px;line-height:1.5;margin:15px 2px}
-
-
-
 .ob-footnote ion-icon{color:#16804b;font-size:15px;flex:none}
-
-
-
 .ob-muted-note{font-size:10px;line-height:1.5;color:#8a6b45;background:#fff8e9;padding:9px;border-radius:8px;margin:10px 0 0}
 
-
-
-
-
-
-
 /* ===================== Calendar (compact on the page) ===================== */
-
-
-
 .ob-calendar-section{background:#fff;border:1px solid #e5edf1;border-radius:20px;padding:20px;margin:18px 0;box-shadow:0 5px 20px rgba(23,50,74,.035)}
-
-
-
 .ob-section-heading{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:14px}
-
-
-
 .ob-section-heading h3{font-size:17px;color:#153c50;margin:4px 0}
-
-
-
 .ob-section-heading p{font-size:11px;line-height:1.5;color:#71828d;margin:0;max-width:570px}
-
-
-
 .ob-eyebrow{font-size:9px;font-weight:850;letter-spacing:.1em;color:#0b8994}
-
-
-
 .ob-calendar-tools{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
-
-
-
 .ob-calendar-legend{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:#617785;margin-top:6px}
-
-
-
 .ob-calendar-tools .ob-calendar-legend{margin-top:0}
-
-
-
 .ob-calendar-legend span{display:flex;align-items:center;gap:5px}
-
-
-
 .pending-dot,.confirmed-dot{display:inline-block;width:7px;height:7px;border-radius:50%}
-
-
-
 .pending-dot{background:#e5a12b}
-
-
-
 .confirmed-dot{background:#15945c}
-
-
-
 .ob-calendar-expand-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #cbdde4;border-radius:11px;background:#fff;color:#0b4f6c;padding:10px 14px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;transition:all .18s ease}
-
-
-
 .ob-calendar-expand-btn:hover{background:#0b4f6c;color:#fff;border-color:#0b4f6c}
-
-
-
 .ob-calendar-hint{text-align:center;font-size:10px;color:#84939d;margin:10px 0 0}
 
-
-
-
-
-
-
 .ob-calendar{max-width:420px;margin:0 auto}
-
-
-
 .ob-calendar-head{display:flex;align-items:center;justify-content:space-between;padding:5px 0 12px}
-
-
-
 .ob-calendar-head strong{font-size:14px;color:#153c50}
-
-
-
 .ob-calendar-head button{width:34px;height:34px;border:1px solid #e3ebef;border-radius:10px;background:#fff;color:#31576b;display:grid;place-items:center;cursor:pointer}
-
-
-
 .ob-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
-
-
-
 .ob-calendar-weekdays{margin-bottom:4px}
-
-
-
 .ob-calendar-weekdays span{text-align:center;font-size:10px;font-weight:800;color:#84939d;padding:6px 0}
-
-
-
 .ob-calendar-blank{min-height:42px}
-
-
-
 .ob-calendar-day{position:relative;min-width:0;min-height:42px;border:1px solid #edf1f4;border-radius:9px;background:#fbfdfe;color:#345568;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:3px;padding:6px 2px 4px;cursor:pointer;font:inherit}
-
-
-
 .ob-calendar-day>span:first-child{font-size:11px;font-weight:750}
-
-
-
 .ob-calendar-day.today>span:first-child{color:#0b7180;text-decoration:underline}
-
-
-
 .ob-calendar-day.selected{border:2px solid #0b7180;background:#eefafa;padding:5px 1px 3px}
-
-
-
 .ob-calendar-day.has-bookings{background:#f5f9fc}
-
-
-
 .ob-calendar-dots{display:flex;gap:4px;min-height:7px}
-
-
-
 .ob-calendar-day small{font-size:9px;color:#597180;font-weight:800}
-
-
-
 .ob-calendar-day.selected small{color:#0b7180}
-
-
-
 .ob-calendar-day:hover{border-color:#91c8d0}
 
-
-
-
-
-
-
 /* Full calendar variant (inside the calendar dialog) */
-
-
-
 .ob-calendar.is-full{max-width:980px;width:100%;margin:6px auto 0}
-
-
-
 .ob-calendar.is-full .ob-calendar-grid{gap:9px}
-
-
-
 .ob-calendar.is-full .ob-calendar-day{min-height:clamp(76px,11vh,115px);border-radius:14px;padding-top:14px;gap:7px}
-
-
-
 .ob-calendar.is-full .ob-calendar-blank{min-height:clamp(76px,11vh,115px)}
-
-
-
 .ob-calendar.is-full .ob-calendar-day>span:first-child{font-size:15px}
-
-
-
 .ob-calendar.is-full .ob-calendar-day small{font-size:12px}
-
-
-
 .ob-calendar.is-full .ob-calendar-weekdays span{font-size:12px;padding:12px 0}
 
-
-
-
-
-
-
 .ob-calendar-day-list{border-top:1px solid #edf1f4;margin:22px auto 0;padding-top:14px;max-width:980px}
-
-
-
 .ob-day-list-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:9px}
-
-
-
 .ob-day-list-heading strong{font-size:13px;color:#153c50}
-
-
-
 .ob-day-list-heading span{font-size:10px;color:#71828d}
-
-
-
 .ob-day-bookings{display:grid;gap:7px}
-
-
-
 .ob-day-booking{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:14px;border:1px solid #e8eef2;border-radius:10px;background:#fbfdfe;color:#17324a;cursor:pointer;font:inherit}
-
-
-
 .ob-day-booking>span:nth-child(2){display:grid;gap:3px;min-width:0;flex:1}
-
-
-
 .ob-day-booking strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-
-
 .ob-day-booking small{font-size:10px;color:#71828d}
-
-
-
 .ob-day-booking>ion-icon{color:#0b7180}
-
-
-
 .pending-bar,.confirmed-bar{width:4px;height:30px;border-radius:4px;flex:none}
-
-
-
 .pending-bar{background:#e5a12b}
-
-
-
 .confirmed-bar{background:#15945c}
-
-
-
 .ob-no-day-bookings{font-size:11px;color:#84939d;margin:0;padding:9px 0}
 
-
-
-
-
-
-
 /* ===================== Dialogs (rendered in document.body) ===================== */
-
-
-
 .ob-modal-backdrop,.ob-modal-backdrop *{box-sizing:border-box}
-
-
-
 .ob-modal-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(8,24,36,.68);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:20px;color:#17324a;font-family:inherit}
-
-
-
 .ob-calendar-layer{z-index:10000}
-
-
-
 .ob-details-layer{z-index:10050}
-
-
-
 .ob-cancel-layer{z-index:10100}
-
-
-
-
-
-
+.ob-confirm-layer{z-index:10200}
 
 .ob-details-modal,.ob-cancel-modal,.ob-calendar-modal{width:min(780px,100%);max-height:min(90vh,920px);max-height:min(90dvh,920px);display:flex;flex-direction:column;background:#fff;border:1px solid rgba(255,255,255,.55);border-radius:22px;box-shadow:0 28px 100px rgba(0,0,0,.32);overflow:hidden;animation:ob-pop .16s ease-out}
-
-
-
 .ob-calendar-modal{width:min(1040px,100%);max-height:min(94vh,980px);max-height:min(94dvh,980px)}
-
-
-
 .ob-cancel-modal{width:min(480px,100%);padding:0}
-
-
-
-.ob-cancel-modal>p{font-size:12px;line-height:1.5;color:#f8fcff;margin:16px 22px 10px}
-
-
-
+.ob-cancel-modal>p{font-size:12px;line-height:1.5;color:#5e7180;margin:16px 22px 10px}
 .ob-cancel-modal textarea{display:block;width:calc(100% - 44px);margin:0 22px;resize:vertical;border:1px solid #dce6eb;border-radius:11px;padding:11px;font:inherit;font-size:12px;color:#17324a;outline:none}
-
-
-
 .ob-cancel-modal textarea:focus{border-color:#0b8994;box-shadow:0 0 0 3px rgba(11,137,148,.1)}
-
-
-
 @keyframes ob-pop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
 
-
-
-
-
-
-
 .ob-modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 24px;border-bottom:1px solid #edf1f4;background:linear-gradient(135deg,#f5fafc,#fff);flex:none}
-
-
-
 .ob-modal-head h3{font-size:21px;letter-spacing:-.025em;color:#153c50;margin:4px 0}
-
-
-
 .ob-modal-head small{font-size:10px;color:#71828d;overflow-wrap:anywhere}
-
-
-
 .ob-modal-head>button{border:0;background:#f1f5f7;color:#456273;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:20px;cursor:pointer;flex:none}
-
-
-
 .ob-modal-head>button:hover{background:#e3ecf0}
-
-
-
 .ob-details-scroll{padding:20px 24px 24px;overflow:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 
-
-
-
-
-
-
 .ob-detail-highlight{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:18px 20px;border:1px solid #dcebef;background:linear-gradient(135deg,#f0f8fa,#f7fbfc);border-radius:16px;margin-bottom:13px}
-
-
-
 .ob-detail-highlight>div{display:grid;gap:4px}
-
-
-
 .ob-detail-highlight small,.ob-detail-grid small{font-size:10px;color:#71828d}
-
-
-
 .ob-detail-highlight strong{font-size:16px;color:#153c50}
-
-
-
 .ob-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
-
-
-
 .ob-detail-grid>div{min-width:0;padding:14px;border:1px solid #edf1f4;border-radius:13px;background:#fff}
-
-
-
 .ob-detail-grid small{display:flex;align-items:center;gap:5px;margin-bottom:5px;text-transform:uppercase;letter-spacing:.045em;font-weight:800}
-
-
-
 .ob-detail-grid small ion-icon{font-size:13px;color:#0b7180}
-
-
-
 .ob-detail-grid strong{display:block;font-size:12px;color:#294b5d;overflow-wrap:anywhere;line-height:1.55}
-
-
-
 .ob-detail-block{margin-top:13px;padding:16px;border:1px solid #e8eef2;border-radius:14px;background:#fff}
-
-
-
 .ob-detail-block>strong{display:flex;align-items:center;gap:6px;font-size:13px;color:#153c50;margin-bottom:10px}
-
-
-
 .ob-detail-block>strong ion-icon{color:#0b7180}
-
-
-
 .ob-detail-block p{font-size:11px;color:#5e7180;line-height:1.5;margin:5px 0;white-space:pre-wrap;overflow-wrap:anywhere}
-
-
-
 .ob-detail-block p.ob-muted-note{color:#8a6b45}
-
-
-
 .ob-breakdown-row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #f0f3f5;font-size:11px;color:#687987}
-
-
-
 .ob-breakdown-row b{color:#294b5d;text-align:right;overflow-wrap:anywhere}
-
-
-
 .ob-breakdown-row.total{border:0;border-top:1px solid #dce6eb;margin-top:4px;padding-top:10px;font-size:13px;color:#153c50}
-
-
-
 .ob-breakdown-row.total b{font-size:16px;color:#00374e}
-
-
-
 .ob-receipt-link{display:flex;align-items:center;gap:7px;margin-top:9px;padding:12px 14px;border:1px solid #cde8d7;border-radius:11px;background:#eaf7ef;color:#17623a;text-decoration:none;font-size:11px;font-weight:800;overflow-wrap:anywhere}
 
-
-
-
-
-
-
 .ob-modal-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:15px 24px;border-top:1px solid #edf1f4;background:#fbfdfe;flex:none}
-
-
-
 .ob-cancel-modal .ob-modal-actions{margin-top:16px}
-
-
-
 .ob-modal-actions button{padding:11px 15px}
 
+/* ===================== In-app toast ===================== */
+.ob-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:10300;display:flex;align-items:center;gap:12px;max-width:min(520px,calc(100vw - 24px));padding:13px 16px;border-radius:12px;font-size:12px;font-weight:700;line-height:1.45;box-shadow:0 12px 36px rgba(0,0,0,.2);animation:ob-pop .16s ease-out}
+.ob-toast.error{background:#fff0ef;border:1px solid #f5d6d1;color:#a3342c}
+.ob-toast.success{background:#dcfce9;border:1px solid #bfe8cf;color:#17623a}
+.ob-toast span{flex:1;overflow-wrap:anywhere}
+.ob-toast button{border:0;background:transparent;color:inherit;font-size:20px;line-height:1;cursor:pointer;padding:0 2px}
 
-
-
-
-
+/* ===================== In-app confirm dialog ===================== */
+.ob-confirm-modal{width:min(420px,100%);background:#fff;border-radius:20px;box-shadow:0 28px 100px rgba(0,0,0,.32);overflow:hidden;animation:ob-pop .16s ease-out}
+.ob-confirm-modal h3{margin:0;padding:22px 24px 0;font-size:18px;letter-spacing:-.02em;color:#153c50}
+.ob-confirm-modal p{margin:10px 24px 4px;font-size:13px;line-height:1.55;color:#5e7180}
+.ob-confirm-modal .ob-modal-actions{margin-top:16px}
 
 /* ===================== Responsive ===================== */
-
-
-
 @media(min-width:800px){.ob-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
-
-
-
-
-
-
 @media(max-width:700px){
-
-
-
   .ob-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-
-
-
   .ob-stat-grid article{padding:12px}
-
-
-
   .ob-stat-grid strong{font-size:22px}
-
-
-
   .ob-toolbar{flex-direction:column}
-
-
-
   .ob-card-actions{align-items:flex-start}
-
-
-
   .ob-card-actions>div{width:100%}
-
-
-
   .ob-card-actions button{flex:1}
-
-
-
   .ob-booking-info>div{align-items:flex-start}
-
-
-
   .ob-booking-info>div strong{max-width:58%}
-
-
-
   .ob-section-heading{display:flex;flex-direction:column;align-items:stretch}
-
-
-
   .ob-calendar-tools{justify-content:space-between}
-
-
-
   .ob-calendar-section{padding:14px}
-
-
-
   .ob-calendar-grid{gap:3px}
-
-
-
   .ob-calendar-day{min-height:40px;border-radius:8px}
-
-
-
   .ob-calendar-blank{min-height:40px}
-
-
-
   .ob-calendar.is-full .ob-calendar-grid{gap:3px}
-
-
-
   .ob-calendar.is-full .ob-calendar-day{min-height:62px;padding:8px 2px;border-radius:9px}
-
-
-
   .ob-calendar.is-full .ob-calendar-blank{min-height:62px}
-
-
-
   .ob-calendar.is-full .ob-calendar-day>span:first-child{font-size:13px}
-
-
-
   .ob-calendar.is-full .ob-calendar-weekdays span{font-size:10px}
-
-
-
   .ob-detail-grid{grid-template-columns:1fr}
-
-
-
   .ob-modal-backdrop{padding:8px}
-
-
-
   .ob-details-modal,.ob-cancel-modal,.ob-calendar-modal{max-height:95vh;max-height:95dvh;border-radius:16px}
-
-
-
   .ob-modal-head{padding:16px}
-
-
-
   .ob-details-scroll{padding:14px}
-
-
-
   .ob-modal-actions{padding:12px 14px}
-
-
-
   .ob-modal-actions button{flex:1}
-
-
-
   .ob-detail-highlight{align-items:flex-start}
-
-
-
   .ob-cancel-modal>p{margin:14px 16px 10px}
-
-
-
   .ob-cancel-modal textarea{width:calc(100% - 32px);margin:0 16px}
-
-
-
+  .ob-toast{top:10px}
 }
-
-
-
-
 
 /* Admin-controlled booking suspension notice */
+.ob-control-alert{display:flex;align-items:flex-start;gap:12px;margin:16px 0;padding:16px;border:1px solid #f0c36d;border-radius:14px;background:#fff8e8;color:#805b16;line-height:1.5}
+.ob-control-alert-icon{flex:0 0 auto;font-size:24px;line-height:1.2}
+.ob-control-alert-content{flex:1;min-width:0}
+.ob-control-alert strong{display:block;margin:0 0 5px;color:#805b16;font-size:14px;font-weight:750}
+.ob-control-alert p{margin:0;color:#805b16;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
 
-.ob-control-alert {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin: 16px 0;
-  padding: 16px;
-  border: 1px solid #f0c36d;
-  border-radius: 14px;
-  background: #fff8e8;
-  color: #805b16;
-  line-height: 1.5;
-}
-
-.ob-control-alert-icon {
-  flex: 0 0 auto;
-  font-size: 24px;
-  line-height: 1.2;
-}
-
-.ob-control-alert-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.ob-control-alert strong {
-  display: block;
-  margin: 0 0 5px;
-  color: #805b16;
-  font-size: 14px;
-  font-weight: 750;
-}
-
-.ob-control-alert p {
-  margin: 0;
-  color: #805b16;
-  font-size: 13px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 600px) {
-  .ob-control-alert {
-    gap: 10px;
-    padding: 14px;
-  }
-
-  .ob-control-alert-icon {
-    font-size: 21px;
-  }
-}
-
-.ob-card-actions button:disabled,
-
-.ob-modal-actions button:disabled {
-
-  opacity: .45;
-
-  cursor: not-allowed;
-
-  filter: grayscale(.25);
-
+@media (max-width:600px){
+  .ob-control-alert{gap:10px;padding:14px}
+  .ob-control-alert-icon{font-size:21px}
 }
